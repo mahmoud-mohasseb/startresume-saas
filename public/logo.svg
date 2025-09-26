@@ -1,0 +1,10 @@
+<svg width="835" height="200" viewBox="0 0 835 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Blue circle background to match website theme -->
+  <circle cx="100" cy="100" r="85" fill="#3B82F6"/>
+  
+  <!-- White arrow/chevron -->
+  <path d="M70 60 L130 100 L70 140" stroke="white" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  
+  <!-- RESUME text -->
+  <text x="220" y="130" font-family="Arial, sans-serif" font-size="80" font-weight="bold" fill="white">RESUME</text>
+</svg>
