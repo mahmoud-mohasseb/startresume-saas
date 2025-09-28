@@ -81,6 +81,13 @@ export default clerkMiddleware((auth, req: NextRequest) => {
   // Redirect authenticated users away from auth pages
   const { userId } = auth();
   if (userId && (req.nextUrl.pathname.startsWith('/sign-in') || req.nextUrl.pathname.startsWith('/sign-up'))) {
+    // Check if there's a redirect URL in the query params
+    const redirectUrl = req.nextUrl.searchParams.get('redirect_url');
+    if (redirectUrl) {
+      // Redirect to the intended destination
+      return NextResponse.redirect(new URL(redirectUrl, req.url));
+    }
+    // Default redirect to dashboard
     return NextResponse.redirect(new URL('/dashboard', req.url));
   }
 
