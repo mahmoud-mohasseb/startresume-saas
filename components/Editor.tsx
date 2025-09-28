@@ -280,7 +280,7 @@ export function Editor({
   }, [])
 
   // CKEditor configuration
-  const editorConfig = {
+  const editorConfig: any = {
     placeholder,
     toolbar: [
       'heading',
