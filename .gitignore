@@ -92,3 +92,4 @@ jspm_packages/
 # Temporary folders
 tmp/
 temp/
+pnpm-lock.yaml
