@@ -116,16 +116,16 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
             end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
           },
           features: {
-            available: ['resume_generation', 'job_tailoring', 'cover_letter_generation'],
+            available: [], // No features available for free users
             featureAccess: {
-              'resume_generation': true,
-              'job_tailoring': true,
-              'cover_letter_generation': true,
+              'resume_generation': false,
+              'job_tailoring': false,
+              'cover_letter_generation': false,
               'linkedin_optimization': false,
               'personal_brand_strategy': false,
               'mock_interview': false,
               'salary_research': false,
-              'ai_suggestions': true,
+              'ai_suggestions': false,
               'unlimited_exports': false,
               'priority_support': false,
               'advanced_templates': false
@@ -172,16 +172,16 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         features: {
           available: data.subscription?.plan !== 'free' 
             ? ['resume_generation', 'job_tailoring', 'cover_letter_generation', 'linkedin_optimization', 'personal_brand_strategy', 'mock_interview', 'salary_research']
-            : ['resume_generation', 'job_tailoring', 'cover_letter_generation'],
+            : [], // No features for free users
           featureAccess: {
-            'resume_generation': true, // Available for all users including free
-            'job_tailoring': true, // Available for all users including free
-            'cover_letter_generation': true, // Available for all users including free
+            'resume_generation': data.subscription?.plan !== 'free',
+            'job_tailoring': data.subscription?.plan !== 'free',
+            'cover_letter_generation': data.subscription?.plan !== 'free',
             'linkedin_optimization': data.subscription?.plan !== 'free',
             'personal_brand_strategy': data.subscription?.plan !== 'free',
             'mock_interview': data.subscription?.plan !== 'free',
             'salary_research': data.subscription?.plan !== 'free',
-            'ai_suggestions': true, // Available for all users including free
+            'ai_suggestions': data.subscription?.plan !== 'free',
             'unlimited_exports': data.subscription?.plan === 'pro',
             'priority_support': data.subscription?.plan === 'pro',
             'advanced_templates': data.subscription?.plan !== 'free'

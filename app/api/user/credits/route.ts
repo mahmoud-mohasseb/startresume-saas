@@ -1,13 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { currentUser } from '@clerk/nextjs/server'
+import { getStripeDirectCredits } from '@/lib/stripe-direct-credits'
 
-// Simple in-memory storage for demo purposes (same as consume endpoint)
-declare global {
-  var userCredits: Map<string, number> | undefined
+function getFeaturesByPlan(plan: string): string[] {
+  switch (plan) {
+    case 'basic':
+      return [
+        'Resume Generation (5 credits)',
+        'Cover Letter Generation (3 credits)', 
+        'Job Tailoring (3 credits)',
+        'Basic Templates',
+        'PDF Export',
+        'Email Support'
+      ]
+    case 'standard':
+      return [
+        'Everything in Basic',
+        'LinkedIn Optimization (4 credits)',
+        'Salary Negotiation (2 credits)',
+        'Premium Templates',
+        'PDF & DOCX Export',
+        'Priority Support',
+        'Resume Analytics'
+      ]
+    case 'pro':
+      return [
+        'Everything in Standard',
+        'Personal Brand Strategy (8 credits)',
+        'Mock Interview Practice (6 credits)',
+        'Advanced Analytics',
+        'Executive Templates',
+        'Personal Branding Consultation',
+        'Career Strategy Planning',
+        'White-label Resumes',
+        'Dedicated Support'
+      ]
+    default:
+      return [
+        'Upgrade to access AI features',
+        'Choose from Basic, Standard, or Pro plans',
+        'All plans include professional templates',
+        'Cancel anytime'
+      ]
+  }
 }
-
-const userCredits = globalThis.userCredits || new Map<string, number>()
-globalThis.userCredits = userCredits
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,49 +57,44 @@ export async function GET(request: NextRequest) {
     }
 
 
-    // Get current credits from in-memory storage (default to 3 for free plan)
-    const currentCredits = userCredits.get(user.id) || 3
-    const totalCredits = 3 // Free plan default
-    const usedCredits = totalCredits - currentCredits
-
+    // Get actual subscription data from Stripe
+    const stripeData = await getStripeDirectCredits(user.id)
+    
     // Build response in the expected format
     const response = {
       subscription: {
-        plan: 'free',
-        planName: 'Free',
-        totalCredits: totalCredits,
-        usedCredits: usedCredits,
-        remainingCredits: currentCredits,
-        isActive: true,
-        status: 'free',
+        plan: stripeData.plan,
+        planName: stripeData.planName,
+        totalCredits: stripeData.credits,
+        usedCredits: stripeData.usedCredits,
+        remainingCredits: stripeData.remainingCredits,
+        isActive: stripeData.isActive,
+        status: stripeData.status,
         lastUpdated: new Date().toISOString(),
-        stripeSubscription: false,
-        paymentCompleted: false
+        stripeSubscription: stripeData.subscriptionId ? true : false,
+        paymentCompleted: stripeData.isActive,
+        currentPeriodStart: stripeData.currentPeriodStart,
+        currentPeriodEnd: stripeData.currentPeriodEnd
       },
       plan: {
-        name: 'Free',
-        price: 0,
-        features: [
-          'Resume Generation',
-          'Job Tailoring',
-          'Cover Letter Generation',
-          'AI Suggestions (Limited)',
-          'Basic Templates',
-          'PDF Export'
-        ]
+        name: stripeData.planName,
+        price: stripeData.pricePerMonth,
+        features: getFeaturesByPlan(stripeData.plan)
       },
       analytics: {
-        totalUsed: usedCredits,
+        totalUsed: stripeData.usedCredits,
         usageByAction: {},
         usageByDay: {},
         recentUsage: []
       }
     }
 
+
     console.log(`📊 Credits API response for ${user.id}:`, {
-      total: totalCredits,
-      used: usedCredits,
-      remaining: currentCredits
+      plan: stripeData.plan,
+      total: stripeData.credits,
+      used: stripeData.usedCredits,
+      remaining: stripeData.remainingCredits
     })
 
     return NextResponse.json(response)
@@ -76,10 +107,10 @@ export async function GET(request: NextRequest) {
       subscription: {
         plan: 'free',
         planName: 'Free',
-        totalCredits: 3,
+        totalCredits: 0,
         usedCredits: 0,
-        remainingCredits: 3,
-        isActive: true,
+        remainingCredits: 0,
+        isActive: false,
         status: 'free',
         lastUpdated: new Date().toISOString(),
         stripeSubscription: false,
@@ -88,14 +119,7 @@ export async function GET(request: NextRequest) {
       plan: {
         name: 'Free',
         price: 0,
-        features: [
-          'Resume Generation',
-          'Job Tailoring',
-          'Cover Letter Generation',
-          'AI Suggestions (Limited)',
-          'Basic Templates',
-          'PDF Export'
-        ]
+        features: getFeaturesByPlan('free')
       },
       analytics: {
         totalUsed: 0,

@@ -93,3 +93,25 @@ jspm_packages/
 tmp/
 temp/
 pnpm-lock.yaml
+
+# Test and development files
+*.test.js
+*.spec.js
+test-*.js
+*-test.js
+
+# Large files and build artifacts
+*.tar.gz
+dist/
+
+# Additional OS files
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
