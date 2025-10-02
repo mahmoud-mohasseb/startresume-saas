@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { currentUser } from '@clerk/nextjs/server'
 import { createAdminClient } from '@/lib/supabase'
 
 export async function DELETE(
@@ -24,7 +24,7 @@ export async function DELETE(
       .from('resumes')
       .select('id')
       .eq('id', id)
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
       .single()
 
     if (fetchError || !resume) {
@@ -36,7 +36,7 @@ export async function DELETE(
       .from('resumes')
       .delete()
       .eq('id', id)
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
 
     if (deleteError) {
       console.error('Error deleting resume:', deleteError)
@@ -70,7 +70,7 @@ export async function GET(
       .from('resumes')
       .select('*')
       .eq('id', id)
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
       .single()
 
     if (error || !data) {
@@ -113,7 +113,7 @@ export async function PUT(
       .from('resumes')
       .select('id')
       .eq('id', id)
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
       .single()
 
     if (fetchError || !existingResume) {
@@ -137,7 +137,7 @@ export async function PUT(
       .from('resumes')
       .update(updateData)
       .eq('id', id)
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
       .select()
       .single()
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { currentUser } from '@clerk/nextjs/server'
 import OpenAI from 'openai'
 import { createAdminClient } from '@/lib/supabase'
 import { createCreditsProtectedHandler } from '@/lib/credit-middleware'
@@ -40,7 +40,7 @@ function calculateATSScore(htmlContent: string): number {
 export async function POST(request: NextRequest) {
   async function handleResumeGeneration(request: NextRequest) {
     try {
-      const user = await auth.currentUser()
+      const user = await currentUser()
       if (!user) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       }

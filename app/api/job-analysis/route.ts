@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { currentUser } from '@clerk/nextjs/server'
 import OpenAI from 'openai'
 import { OPENAI_CONFIG, SYSTEM_PROMPTS } from '@/lib/openai-config'
 
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!checkAnalysisRateLimit(userId)) {
+    if (!checkAnalysisRateLimit(user.id)) {
       return NextResponse.json({ 
         error: 'Rate limit exceeded. Please try again later.' 
       }, { status: 429 })
@@ -118,7 +118,7 @@ Focus on extracting the most important and specific requirements that would be c
         const outputCost = (outputTokens / 1000) * OPENAI_CONFIG.COSTS.OUTPUT_PER_1K_TOKENS
         const totalCost = inputCost + outputCost
         
-        console.log(`[JOB ANALYSIS COST] User: ${userId}, Input: ${inputTokens} tokens ($${inputCost.toFixed(4)}), Output: ${outputTokens} tokens ($${outputCost.toFixed(4)}), Total: $${totalCost.toFixed(4)}`)
+        console.log(`[JOB ANALYSIS COST] User: ${user.id}, Input: ${inputTokens} tokens ($${inputCost.toFixed(4)}), Output: ${outputTokens} tokens ($${outputCost.toFixed(4)}), Total: $${totalCost.toFixed(4)}`)
       }
 
       return NextResponse.json({

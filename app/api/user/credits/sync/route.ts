@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { currentUser } from '@clerk/nextjs/server'
 import { 
   forceSyncWithStripe, 
   getStripeDirectCredits, 
@@ -15,16 +15,16 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`=== CREDIT SYNC REQUEST ===`)
-    console.log(`User ID: ${userId}`)
+    console.log(`User ID: ${user.id}`)
 
     // Try Stripe-direct credit check first
-    const stripeCredits = await getStripeDirectCredits(userId)
+    const stripeCredits = await getStripeDirectCredits(user.id)
     console.log(`Stripe-direct credits:`, stripeCredits)
 
     // Force sync with Stripe if needed
     let syncResult = false
     if (stripeCredits.status === 'active' && stripeCredits.credits > 0) {
-      syncResult = await forceSyncWithStripe(userId)
+      syncResult = await forceSyncWithStripe(user.id)
       console.log(`Force sync result: ${syncResult}`)
     }
 
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     console.log(`Final subscription:`, subscription)
 
     // Log the sync attempt
-    await logSubscriptionEvent(userId, 'credit_sync_requested', {
+    await logSubscriptionEvent(user.id, 'credit_sync_requested', {
       stripeCredits,
       syncResult,
       finalSubscription: subscription
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get current credits without syncing
-    const stripeCredits = await getStripeDirectCredits(userId)
+    const stripeCredits = await getStripeDirectCredits(user.id)
     const subscription = await getCurrentUserSubscription()
 
     return NextResponse.json({

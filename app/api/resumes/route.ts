@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { currentUser } from '@clerk/nextjs/server'
 import { createAdminClient } from '@/lib/supabase'
 import { randomUUID } from 'crypto'
 
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase
       .from('resumes')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
       .order('updated_at', { ascending: false })
 
     if (error) {
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     const template_id = randomUUID()
 
     const resumeData = {
-      user_id: userId,
+      user_id: user.id,
       title,
       html_content: html_content || '',
       json_content,

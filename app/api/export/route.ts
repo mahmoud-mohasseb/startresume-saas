@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { currentUser } from '@clerk/nextjs/server'
 import { createClient } from '@supabase/supabase-js'
 import puppeteer from 'puppeteer'
 
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       .from('resumes')
       .select('*')
       .eq('id', resumeId)
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
       .single()
 
     if (error || !resume) {

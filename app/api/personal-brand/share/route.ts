@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { currentUser } from '@clerk/nextjs/server'
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       .from('shared_brand_strategies')
       .insert({
         id: shareId,
-        user_id: userId,
+        user_id: user.id,
         title: title || `${brandData.industry} Brand Strategy`,
         brand_data: brandData,
         analysis: analysis,
