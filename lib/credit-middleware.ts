@@ -110,3 +110,11 @@ export function withCredits(
     return handler(request, context)
   }
 }
+
+export function createCreditsProtectedHandler(
+  handler: (request: NextRequest, context: any) => Promise<NextResponse>,
+  requiredCredits: number = 1,
+  action: string = 'api_call'
+) {
+  return withCredits(handler, requiredCredits, action)
+}

@@ -76,3 +76,9 @@ export function groupUsageByAction(usage: CreditUsage[]): Record<string, number>
     return acc
   }, {} as Record<string, number>)
 }
+
+export function formatCreditsDisplay(credits: number): string {
+  if (credits === 0) return '0 credits'
+  if (credits === 1) return '1 credit'
+  return `${credits} credits`
+}

@@ -141,3 +141,46 @@ export function generateTestData(count: number = 10) {
     timestamp: new Date(Date.now() - i * 1000 * 60 * 60).toISOString()
   }))
 }
+
+export async function runFullTestSuite(): Promise<TestSuite> {
+  const runner = new APITestRunner('Full API Test Suite')
+  
+  // Add basic tests
+  runner.addTest('Health Check', async () => {
+    return { status: 'healthy', timestamp: new Date().toISOString() }
+  })
+  
+  runner.addTest('Environment Check', async () => {
+    return {
+      nodeEnv: process.env.NODE_ENV,
+      hasOpenAI: !!process.env.OPENAI_API_KEY,
+      hasStripe: !!process.env.STRIPE_SECRET_KEY
+    }
+  })
+  
+  return await runner.run()
+}
+
+export function generateTestReport(testSuite: TestSuite): string {
+  const { name, totalTests, passedTests, failedTests, totalDuration } = testSuite
+  
+  let report = `# ${name}\n\n`
+  report += `**Summary:**\n`
+  report += `- Total Tests: ${totalTests}\n`
+  report += `- Passed: ${passedTests}\n`
+  report += `- Failed: ${failedTests}\n`
+  report += `- Duration: ${totalDuration}ms\n\n`
+  
+  report += `**Test Results:**\n\n`
+  
+  testSuite.tests.forEach(test => {
+    const status = test.success ? '✅' : '❌'
+    report += `${status} **${test.name}** (${test.duration}ms)\n`
+    if (!test.success) {
+      report += `   Error: ${test.message}\n`
+    }
+    report += '\n'
+  })
+  
+  return report
+}

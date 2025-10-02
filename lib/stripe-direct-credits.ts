@@ -209,3 +209,29 @@ export async function checkAndConsumeStripeDirectCredits(
     }
   }
 }
+
+export async function findOrCreateStripeCustomer(clerkUserId: string, userEmail?: string): Promise<string> {
+  try {
+    // Search for existing customer
+    const customers = await stripe.customers.search({
+      query: `metadata['clerk_user_id']:'${clerkUserId}'`
+    })
+    
+    if (customers.data.length > 0) {
+      return customers.data[0].id
+    }
+    
+    // Create new customer
+    const customer = await stripe.customers.create({
+      email: userEmail,
+      metadata: {
+        clerk_user_id: clerkUserId
+      }
+    })
+    
+    return customer.id
+  } catch (error) {
+    console.error('Error finding/creating Stripe customer:', error)
+    throw error
+  }
+}
