@@ -71,7 +71,28 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Export function to get current credits (for other APIs to use)
-export function getCurrentUserCredits(userId: string): number {
-  return initializeUserCredits(userId)
+// GET endpoint to retrieve current credits
+export async function GET(request: NextRequest) {
+  try {
+    const user = await currentUser()
+    
+    if (!user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    }
+
+    const currentCredits = initializeUserCredits(user.id)
+
+    return NextResponse.json({
+      success: true,
+      credits: currentCredits,
+      userId: user.id
+    })
+
+  } catch (error) {
+    console.error('❌ Error getting credits:', error)
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
+  }
 }
