@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    appDir: true,
     largePageDataBytes: 256 * 1000, // 256KB - Increased for large headers
     optimizeCss: true,
   },
