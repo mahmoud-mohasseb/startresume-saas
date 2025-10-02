@@ -198,7 +198,7 @@ export default function FullResumeMarkdownEditor({
         "linkedin.com/in/johnsmith",
         "linkedin.com/in/sarahjohnson"
       ]
-    ]
+    }
 
     const templates = suggestionTemplates[type as keyof typeof suggestionTemplates] || []
     
