@@ -2,7 +2,7 @@
 
 import { useUser } from '@clerk/nextjs';
 import { useState } from 'react';
-import { SUBSCRIPTION_PLANS } from '@/lib/subscription-manager';
+import { SUBSCRIPTION_PLANS } from '@/lib/subscription-plans';
 import { CreditCard, Crown, Zap, Star, ArrowRight, Check, X, Loader2 } from 'lucide-react';
 
 // Use SUBSCRIPTION_PLANS as PLANS for consistency

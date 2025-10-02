@@ -5,6 +5,7 @@ export const SUBSCRIPTION_PLANS = [
     name: 'Basic',
     price: 9.99,
     credits: 10,
+    creditCost: 0.99,
     features: [
       'Resume Generation',
       'AI Suggestions', 
@@ -20,6 +21,7 @@ export const SUBSCRIPTION_PLANS = [
     name: 'Standard',
     price: 19.99,
     credits: 50,
+    creditCost: 0.40,
     features: [
       'Everything in Basic',
       'Job Tailoring',
@@ -36,6 +38,7 @@ export const SUBSCRIPTION_PLANS = [
     name: 'Pro', 
     price: 49.99,
     credits: 200,
+    creditCost: 0.25,
     features: [
       'Everything in Standard',
       'Personal Brand Strategy',

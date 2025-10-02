@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Zap, Check, Star, CreditCard, Loader2 } from 'lucide-react'
-import { SUBSCRIPTION_PLANS } from '@/lib/subscription-manager'
+import { SUBSCRIPTION_PLANS } from '@/lib/subscription-plans'
 import { useUser } from '@clerk/nextjs'
 
 interface UpgradeModalProps {
