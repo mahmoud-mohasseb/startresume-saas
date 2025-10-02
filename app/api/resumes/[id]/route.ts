@@ -7,8 +7,8 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId } = auth()
-    if (!userId) {
+    const user = await currentUser()
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -55,8 +55,8 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId } = auth()
-    if (!userId) {
+    const user = await currentUser()
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -89,8 +89,8 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId } = auth()
-    if (!userId) {
+    const user = await currentUser()
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

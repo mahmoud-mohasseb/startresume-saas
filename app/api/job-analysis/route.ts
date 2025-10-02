@@ -33,8 +33,8 @@ function checkAnalysisRateLimit(userId: string): boolean {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = auth()
-    if (!userId) {
+    const user = await currentUser()
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

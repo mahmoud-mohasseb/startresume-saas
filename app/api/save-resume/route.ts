@@ -1,12 +1,12 @@
-import { auth } from '@clerk/nextjs'
+import { currentUser } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 
 export async function POST(request: Request) {
   try {
-    const { userId } = auth()
+    const user = await currentUser()
     
-    if (!userId) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -17,19 +17,19 @@ export async function POST(request: Request) {
     }
 
     // Get or create user record
-    let { data: user, error: userError } = await supabaseAdmin()
+    let { data: dbUser, error: userError } = await supabaseAdmin()
       .from('users')
       .select('id')
-      .eq('clerk_id', userId)
+      .eq('clerk_id', user.id)
       .single()
 
-    if (userError || !user) {
+    if (userError || !dbUser) {
       // Create user if doesn't exist
       const { data: newUser, error: createError } = await supabaseAdmin()
         .from('users')
         .insert({
-          clerk_id: userId,
-          email: '', // Will be updated from Clerk webhook
+          clerk_id: user.id,
+          email: user.emailAddresses[0]?.emailAddress || '',
         })
         .select('id')
         .single()
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Failed to create user' }, { status: 500 })
       }
 
-      user = newUser
+      dbUser = newUser
     }
 
     // Calculate basic ATS score based on content
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
     const { data: resume, error: saveError } = await supabaseAdmin()
       .from('resumes')
       .insert({
-        user_id: user.id,
+        user_id: dbUser.id,
         title,
         html_content,
         json_content,

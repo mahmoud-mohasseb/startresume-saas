@@ -5,8 +5,8 @@ import { randomUUID } from 'crypto'
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = auth()
-    if (!userId) {
+    const user = await currentUser()
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -31,8 +31,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = auth()
-    if (!userId) {
+    const user = await currentUser()
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
