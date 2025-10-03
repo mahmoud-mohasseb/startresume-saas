@@ -3,10 +3,10 @@
 import { useUser } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { UserButton } from '@clerk/nextjs'
+import { UserButton, useClerk } from '@clerk/nextjs'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { FileText, Home, MessageSquare, History, Brain, Linkedin, Target, Menu, X, Star, DollarSign, CreditCard, ChevronLeft, ChevronRight } from 'lucide-react'
+import { FileText, Home, MessageSquare, History, Brain, Linkedin, Target, Menu, X, Star, DollarSign, CreditCard, ChevronLeft, ChevronRight, LogOut } from 'lucide-react'
 import PlanBasedCreditWidget from '@/components/PlanBasedCreditWidget'
 import { SubscriptionProvider } from '@/contexts/SubscriptionContext'
 
@@ -16,6 +16,7 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const { user, isLoaded } = useUser()
+  const { signOut } = useClerk()
   const router = useRouter()
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -204,58 +205,87 @@ export default function DashboardLayout({
           </div>
         </aside>
 
-        {/* Mobile & Tablet Header - Visible on small and medium screens */}
-        <div className="block lg:hidden">
-          <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-lg sticky top-0 z-50">
-            <div className="flex items-center justify-between h-16 px-4">
-              {/* Mobile Logo */}
-              <Link href="/dashboard" className="flex items-center">
+        {/* Mobile Header - Single Responsive Menu */}
+        <header className="lg:hidden bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-lg sticky top-0 z-40">
+          <div className="flex items-center justify-between h-16 px-4">
+            {/* Logo */}
+            <Link href="/dashboard" className="flex items-center">
+              <img 
+                src="/logo.svg" 
+                alt="StartResume" 
+                className="h-8 w-auto"
+                style={{ maxWidth: '120px' }}
+              />
+            </Link>
+            
+            {/* User & Menu Button */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <UserButton />
+                <div className="hidden sm:block">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    {user.firstName}
+                  </p>
+                </div>
+              </div>
+              
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className={`relative p-3 rounded-lg shadow-lg transition-all duration-200 ${
+                  isMobileMenuOpen 
+                    ? 'bg-red-500 text-white hover:bg-red-600' 
+                    : 'bg-blue-500 text-white hover:bg-blue-600 animate-pulse'
+                }`}
+                type="button"
+                aria-label="Toggle navigation menu"
+              >
+                {isMobileMenuOpen ? (
+                  <X className="h-6 w-6" />
+                ) : (
+                  <div className="relative">
+                    <Menu className="h-6 w-6" />
+                    <div className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full animate-ping"></div>
+                    <div className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></div>
+                  </div>
+                )}
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* Single Mobile Menu Overlay */}
+        {isMobileMenuOpen && (
+          <div className="lg:hidden fixed inset-0 z-50 bg-white dark:bg-gray-900">
+            {/* Menu Header with Logo and User */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-teal-50 dark:from-blue-900 dark:to-teal-900">
+              <div className="flex items-center gap-3">
                 <img 
                   src="/logo.svg" 
                   alt="StartResume" 
                   className="h-8 w-auto"
-                  style={{ maxWidth: '100px' }}
                 />
-              </Link>
-              
-              {/* Mobile Menu Button - Always visible */}
-              <div className="flex items-center gap-3">
-                <UserButton />
-                <button
-                  onClick={() => {
-                    console.log('📱 Mobile menu clicked! Current state:', isMobileMenuOpen)
-                    setIsMobileMenuOpen(!isMobileMenuOpen)
-                  }}
-                  className="bg-blue-500 text-white p-3 rounded-lg shadow-lg border-2 border-blue-500 hover:bg-blue-600 transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center"
-                  type="button"
-                  aria-label="Toggle navigation menu"
-                >
-                  {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-                </button>
-              </div>
-            </div>
-          </header>
-
-          {/* Simple Mobile Menu - Full Screen Overlay */}
-          {isMobileMenuOpen && (
-            <div className="fixed inset-0 z-50 bg-white dark:bg-gray-900 animate-in slide-in-from-right duration-300">
-              {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900">
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Navigation Menu</h2>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">Choose where to go</p>
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">
+                    {user.firstName} {user.lastName}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    {user.emailAddresses[0]?.emailAddress}
+                  </p>
                 </div>
-                <button
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="bg-red-500 text-white p-3 rounded-lg hover:bg-red-600 transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center"
-                  aria-label="Close menu"
-                >
-                  <X className="h-6 w-6" />
-                </button>
               </div>
               
-              {/* Navigation Links */}
-              <div className="p-4 space-y-4 overflow-y-auto">
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="bg-red-500 text-white p-2 rounded-lg hover:bg-red-600 transition-colors"
+                aria-label="Close menu"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            {/* Navigation Links */}
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="space-y-3">
                 {navigationItems.map((item, index) => {
                   const IconComponent = item.icon
                   return (
@@ -263,10 +293,10 @@ export default function DashboardLayout({
                       key={index}
                       href={item.href}
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className={`flex items-center gap-4 p-4 rounded-xl text-lg font-medium border-2 transition-colors ${
+                      className={`flex items-center gap-4 p-4 rounded-xl text-lg font-medium transition-colors ${
                         isActive(item.href)
-                          ? 'bg-blue-500 text-white border-blue-500'
-                          : 'bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900'
+                          ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white shadow-lg'
+                          : 'bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-blue-50 dark:hover:bg-blue-900/30 border border-gray-200 dark:border-gray-700'
                       }`}
                     >
                       <IconComponent className={`h-6 w-6 ${isActive(item.href) ? 'text-white' : item.color}`} />
@@ -275,26 +305,36 @@ export default function DashboardLayout({
                   )
                 })}
                 
-                {/* Additional Link */}
+                {/* Billing Link */}
                 <Link
                   href="/dashboard/billing"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-4 p-4 rounded-xl text-lg font-medium bg-green-50 dark:bg-green-900 text-green-900 dark:text-green-100 border-2 border-green-200 dark:border-green-700"
+                  className="flex items-center gap-4 p-4 rounded-xl text-lg font-medium bg-green-50 dark:bg-green-900/30 text-green-900 dark:text-green-100 border border-green-200 dark:border-green-700 hover:bg-green-100 dark:hover:bg-green-900/50"
                 >
                   <CreditCard className="h-6 w-6 text-green-500" />
                   <span>Billing & Plans</span>
                 </Link>
+                
+                {/* Logout Button */}
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false)
+                    signOut(() => router.push('/'))
+                  }}
+                  className="flex items-center gap-4 p-4 rounded-xl text-lg font-medium bg-red-50 dark:bg-red-900/30 text-red-900 dark:text-red-100 border border-red-200 dark:border-red-700 hover:bg-red-100 dark:hover:bg-red-900/50 w-full text-left"
+                >
+                  <LogOut className="h-6 w-6 text-red-500" />
+                  <span>Sign Out</span>
+                </button>
               </div>
               
               {/* Credit Widget */}
-              <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
-                  <PlanBasedCreditWidget />
-                </div>
+              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <PlanBasedCreditWidget />
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
 
         {/* Main Content */}
