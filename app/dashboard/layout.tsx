@@ -204,171 +204,98 @@ export default function DashboardLayout({
           </div>
         </aside>
 
-        {/* Mobile Header */}
-        <header className="lg:hidden relative bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-lg sticky top-0 z-50">
-          <div className="flex items-center justify-between h-16 px-4">
-            {/* Mobile Logo */}
-            <Link href="/dashboard" className="flex items-center">
-              <img 
-                src="/logo.svg" 
-                alt="StartResume" 
-                className="h-8 w-auto"
-                style={{ maxWidth: '100px' }}
-              />
-            </Link>
-            
-            {/* Mobile Menu Button */}
-            <div className="flex items-center gap-3">
-              <UserButton />
-              <button
-                onClick={() => {
-                  console.log('🔄 Mobile menu button clicked. Current state:', isMobileMenuOpen)
-                  const newState = !isMobileMenuOpen
-                  setIsMobileMenuOpen(newState)
-                  console.log('🔄 New mobile menu state:', newState)
-                }}
-                className={`flex items-center justify-center p-3 rounded-lg transition-all duration-200 lg:hidden border-2 ${
-                  isMobileMenuOpen 
-                    ? 'bg-blue-500 text-white border-blue-500 shadow-lg' 
-                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-300 dark:hover:border-blue-600'
-                }`}
-                aria-label={isMobileMenuOpen ? 'Close mobile menu' : 'Open mobile menu'}
-                aria-expanded={isMobileMenuOpen}
-                type="button"
-              >
-                {isMobileMenuOpen ? (
-                  <X className="h-6 w-6" />
-                ) : (
-                  <Menu className="h-6 w-6" />
-                )}
-              </button>
-            </div>
-          </div>
-          
-
-          {/* Mobile Navigation Dropdown - Always render but control visibility */}
-          <div 
-            className={`lg:hidden absolute top-full left-0 right-0 w-full bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-2xl transition-all duration-300 ease-in-out z-50 ${
-              isMobileMenuOpen 
-                ? 'opacity-100 visible max-h-screen' 
-                : 'opacity-0 invisible max-h-0 overflow-hidden'
-            }`}
-          >
-            <nav className="px-4 py-6 space-y-2">
+        {/* Mobile & Tablet Header - Visible on small and medium screens */}
+        <div className="block lg:hidden">
+          <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-lg sticky top-0 z-50">
+            <div className="flex items-center justify-between h-16 px-4">
+              {/* Mobile Logo */}
+              <Link href="/dashboard" className="flex items-center">
+                <img 
+                  src="/logo.svg" 
+                  alt="StartResume" 
+                  className="h-8 w-auto"
+                  style={{ maxWidth: '100px' }}
+                />
+              </Link>
               
-              {navigationItems.map((item, index) => {
-                const IconComponent = item.icon
-                return (
-                  <Link 
-                    key={`${item.href}-${index}`}
-                    href={item.href}
-                    onClick={(e) => {
-                      console.log('Navigating to:', item.href)
-                      setIsMobileMenuOpen(false)
-                    }}
-                    className={`flex items-center gap-4 px-4 py-4 rounded-xl font-medium text-base transition-all duration-200 w-full border ${
-                      isActive(item.href)
-                        ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white shadow-lg border-blue-500'
-                        : 'text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 border-gray-200 dark:border-gray-700'
-                    }`}
-                    style={{ minHeight: '56px' }} // Ensure minimum touch target
-                  >
-                    <IconComponent className={`h-6 w-6 flex-shrink-0 ${isActive(item.href) ? 'text-white' : item.color}`} />
-                    <span className="font-medium text-left">{item.label}</span>
-                  </Link>
-                )
-              })}
-              
-              {/* Mobile Credit Widget */}
-              <div className="pt-6 mt-6 border-t border-gray-200 dark:border-gray-700">
-                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
-                  <PlanBasedCreditWidget />
-                </div>
-              </div>
-              
-              {/* Additional Mobile Menu Items */}
-              <div className="pt-4 space-y-2">
-                <Link 
-                  href="/dashboard/billing"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-4 px-4 py-3 rounded-xl font-medium text-base text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700"
+              {/* Mobile Menu Button - Always visible */}
+              <div className="flex items-center gap-3">
+                <UserButton />
+                <button
+                  onClick={() => {
+                    console.log('📱 Mobile menu clicked! Current state:', isMobileMenuOpen)
+                    setIsMobileMenuOpen(!isMobileMenuOpen)
+                  }}
+                  className="bg-blue-500 text-white p-3 rounded-lg shadow-lg border-2 border-blue-500 hover:bg-blue-600 transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center"
+                  type="button"
+                  aria-label="Toggle navigation menu"
                 >
-                  <CreditCard className="h-5 w-5 text-green-500" />
-                  <span>Billing & Plans</span>
-                </Link>
+                  {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                </button>
               </div>
-            </nav>
-          </div>
-        </header>
+            </div>
+          </header>
 
-        {/* Mobile Menu Overlay */}
-        {isMobileMenuOpen && (
-          <div 
-            className="lg:hidden fixed inset-0 bg-black/20 backdrop-blur-sm z-30"
-            onClick={() => setIsMobileMenuOpen(false)}
-          />
-        )}
-
-        {/* Fallback Mobile Menu - Full Screen */}
-        {isMobileMenuOpen && (
-          <div className="lg:hidden fixed inset-0 z-60 bg-white dark:bg-gray-900">
-            <div className="flex flex-col h-full">
+          {/* Simple Mobile Menu - Full Screen Overlay */}
+          {isMobileMenuOpen && (
+            <div className="fixed inset-0 z-50 bg-white dark:bg-gray-900 animate-in slide-in-from-right duration-300">
               {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Navigation</h2>
+              <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Navigation Menu</h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">Choose where to go</p>
+                </div>
                 <button
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200"
+                  className="bg-red-500 text-white p-3 rounded-lg hover:bg-red-600 transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center"
+                  aria-label="Close menu"
                 >
                   <X className="h-6 w-6" />
                 </button>
               </div>
               
               {/* Navigation Links */}
-              <div className="flex-1 overflow-y-auto p-4">
-                <div className="space-y-3">
-                  {navigationItems.map((item, index) => {
-                    const IconComponent = item.icon
-                    return (
-                      <Link
-                        key={`fallback-${item.href}-${index}`}
-                        href={item.href}
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className={`flex items-center gap-4 p-4 rounded-xl text-lg font-medium transition-colors ${
-                          isActive(item.href)
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/20'
-                        }`}
-                      >
-                        <IconComponent className={`h-6 w-6 ${isActive(item.href) ? 'text-white' : item.color}`} />
-                        <span>{item.label}</span>
-                      </Link>
-                    )
-                  })}
-                </div>
+              <div className="p-4 space-y-4 overflow-y-auto">
+                {navigationItems.map((item, index) => {
+                  const IconComponent = item.icon
+                  return (
+                    <Link
+                      key={index}
+                      href={item.href}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={`flex items-center gap-4 p-4 rounded-xl text-lg font-medium border-2 transition-colors ${
+                        isActive(item.href)
+                          ? 'bg-blue-500 text-white border-blue-500'
+                          : 'bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900'
+                      }`}
+                    >
+                      <IconComponent className={`h-6 w-6 ${isActive(item.href) ? 'text-white' : item.color}`} />
+                      <span>{item.label}</span>
+                    </Link>
+                  )
+                })}
                 
-                {/* Additional Links */}
-                <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
-                  <Link
-                    href="/dashboard/billing"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-4 p-4 rounded-xl text-lg font-medium bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                  >
-                    <CreditCard className="h-6 w-6 text-green-500" />
-                    <span>Billing & Plans</span>
-                  </Link>
-                </div>
+                {/* Additional Link */}
+                <Link
+                  href="/dashboard/billing"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-4 p-4 rounded-xl text-lg font-medium bg-green-50 dark:bg-green-900 text-green-900 dark:text-green-100 border-2 border-green-200 dark:border-green-700"
+                >
+                  <CreditCard className="h-6 w-6 text-green-500" />
+                  <span>Billing & Plans</span>
+                </Link>
               </div>
               
-              {/* Footer */}
+              {/* Credit Widget */}
               <div className="p-4 border-t border-gray-200 dark:border-gray-700">
                 <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
                   <PlanBasedCreditWidget />
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+
 
         {/* Main Content */}
         <main className={`flex-1 transition-all duration-300 ${
