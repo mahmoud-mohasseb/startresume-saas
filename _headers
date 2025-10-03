@@ -1,0 +1,23 @@
+# Security headers for Cloudflare Pages
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: origin-when-cross-origin
+  X-XSS-Protection: 1; mode=block
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+
+# Cache static assets
+/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# API routes
+/api/*
+  Cache-Control: no-cache, no-store, must-revalidate
+
+# Manifest file
+/manifest.json
+  Content-Type: application/manifest+json
+  Cache-Control: public, max-age=31536000, immutable
