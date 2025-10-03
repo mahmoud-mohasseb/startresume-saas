@@ -22,7 +22,9 @@
     "db:clean": "node scripts/run-database-cleanup.js",
     "db:reset": "./scripts/reset-db.sh",
     "deploy:check": "node scripts/pre-deployment-test.js",
-    "deploy:prepare": "npm run deploy:check && npm run build"
+    "deploy:prepare": "npm run deploy:check && npm run build",
+    "replit:dev": "npm run dev",
+    "replit:start": "npm run build && npm start"
   },
   "dependencies": {
     "@ckeditor/ckeditor5-react": "^6.2.0",
