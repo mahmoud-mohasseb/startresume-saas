@@ -1,23 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { currentUser } from '@clerk/nextjs/server'
-
-// Import the same storage from parent route
-// In production, this would be in your database
-declare global {
-  var userCredits: Map<string, number> | undefined
-}
-
-// Use global storage to persist across API calls
-const userCredits = globalThis.userCredits || new Map<string, number>()
-globalThis.userCredits = userCredits
-
-// Initialize user with default credits if not exists
-function initializeUserCredits(userId: string): number {
-  if (!userCredits.has(userId)) {
-    userCredits.set(userId, 50) // Default 50 credits
-  }
-  return userCredits.get(userId)!
-}
+import { getSubscription, deductCredits } from '@/lib/supabase-subscriptions'
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,7 +10,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    const { credits } = await request.json()
+    const { credits, feature = 'general_usage' } = await request.json()
 
     if (!credits || credits <= 0) {
       return NextResponse.json({ error: 'Invalid credit amount' }, { status: 400 })
@@ -35,29 +18,51 @@ export async function POST(request: NextRequest) {
 
     console.log(`💳 Consuming ${credits} credits for user ${user.id}`)
 
-    // Get current user credits (initialize if first time)
-    const currentCredits = initializeUserCredits(user.id)
+    // Get current subscription from database
+    const subscription = await getSubscription(user.id)
     
-    if (currentCredits < credits) {
+    if (!subscription) {
+      return NextResponse.json({
+        success: false,
+        error: 'No active subscription found',
+        currentCredits: 0,
+        requiredCredits: credits
+      }, { status: 402 })
+    }
+    
+    if (subscription.credits < credits) {
       return NextResponse.json({
         success: false,
         error: 'Insufficient credits',
-        currentCredits,
+        currentCredits: subscription.credits,
         requiredCredits: credits
       }, { status: 402 })
     }
 
-    // Actually deduct the credits
-    const newRemainingCredits = currentCredits - credits
-    userCredits.set(user.id, newRemainingCredits)
+    // Actually deduct the credits using database
+    const deductResult = await deductCredits(
+      user.id,
+      feature,
+      credits,
+      `Consumed ${credits} credits for ${feature}`
+    )
 
-    console.log(`✅ Credits updated: ${currentCredits} → ${newRemainingCredits} for user ${user.id}`)
+    if (!deductResult.success) {
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to consume credits',
+        currentCredits: deductResult.remainingCredits,
+        requiredCredits: credits
+      }, { status: 500 })
+    }
+
+    console.log(`✅ Credits updated: ${subscription.credits} → ${deductResult.remainingCredits} for user ${user.id}`)
 
     return NextResponse.json({
       success: true,
       message: `Consumed ${credits} credits`,
       subscription: {
-        remainingCredits: newRemainingCredits,
+        remainingCredits: deductResult.remainingCredits,
         creditsUsed: credits
       }
     })
@@ -80,12 +85,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    const currentCredits = initializeUserCredits(user.id)
+    // Get current subscription from database
+    const subscription = await getSubscription(user.id)
+    
+    const currentCredits = subscription?.credits || 0
 
     return NextResponse.json({
       success: true,
       credits: currentCredits,
-      userId: user.id
+      userId: user.id,
+      subscription: subscription ? {
+        plan: subscription.plan,
+        status: subscription.status,
+        remainingCredits: subscription.credits
+      } : null
     })
 
   } catch (error) {

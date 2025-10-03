@@ -1,13 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { currentUser } from '@clerk/nextjs/server'
-
-// Simple in-memory storage for demo purposes
-declare global {
-  var userCredits: Map<string, number> | undefined
-}
-
-const userCredits = globalThis.userCredits || new Map<string, number>()
-globalThis.userCredits = userCredits
+import { getSubscription, deductCredits } from '@/lib/supabase-subscriptions'
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,35 +18,57 @@ export async function POST(request: NextRequest) {
 
     console.log(`💳 Consuming ${amount} credits for ${feature} by user ${user.id}`)
 
-    // Get current credits (default to 3 for free plan)
-    const currentCredits = userCredits.get(user.id) || 3
+    // Get current subscription from database
+    const subscription = await getSubscription(user.id)
     
-    if (currentCredits < amount) {
+    if (!subscription) {
+      return NextResponse.json({
+        success: false,
+        error: 'No active subscription found',
+        currentCredits: 0,
+        requiredCredits: amount
+      }, { status: 402 })
+    }
+    
+    if (subscription.credits < amount) {
       return NextResponse.json({
         success: false,
         error: 'Insufficient credits',
-        currentCredits,
+        currentCredits: subscription.credits,
         requiredCredits: amount
       }, { status: 402 })
     }
 
-    // Deduct credits
-    const newCredits = currentCredits - amount
-    userCredits.set(user.id, newCredits)
+    // Deduct credits using database
+    const deductResult = await deductCredits(
+      user.id,
+      feature,
+      amount,
+      `Consumed ${amount} credits for ${feature}`
+    )
 
-    console.log(`✅ Credits consumed: ${currentCredits} → ${newCredits} for user ${user.id}`)
+    if (!deductResult.success) {
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to consume credits',
+        currentCredits: deductResult.remainingCredits,
+        requiredCredits: amount
+      }, { status: 500 })
+    }
+
+    console.log(`✅ Credits consumed: ${subscription.credits} → ${deductResult.remainingCredits} for user ${user.id}`)
 
     // Return subscription format that matches SubscriptionContext expectations
     return NextResponse.json({
       success: true,
       message: `Consumed ${amount} credits for ${feature}`,
       subscription: {
-        planName: 'Free',
-        plan: 'free',
-        isActive: true,
-        totalCredits: 3,
-        usedCredits: 3 - newCredits,
-        remainingCredits: newCredits
+        planName: subscription.plan.charAt(0).toUpperCase() + subscription.plan.slice(1),
+        plan: subscription.plan,
+        isActive: subscription.status === 'active',
+        totalCredits: subscription.credits + amount, // Original total before deduction
+        usedCredits: (subscription.credits + amount) - deductResult.remainingCredits,
+        remainingCredits: deductResult.remainingCredits
       }
     })
 

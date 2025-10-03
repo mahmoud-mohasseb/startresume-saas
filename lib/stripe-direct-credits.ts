@@ -1,5 +1,6 @@
 import Stripe from 'stripe'
 import { currentUser } from '@clerk/nextjs/server'
+import { getSubscription, deductCredits, createSubscription } from './supabase-subscriptions'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-06-20',
@@ -114,11 +115,29 @@ export async function getStripeDirectCredits(clerkUserId: string): Promise<Strip
       }
     }
     
-    // For now, return plan data with no usage tracking
+    // Get or create subscription in database to track actual usage
+    let dbSubscription = await getSubscription(clerkUserId)
+    
+    // If no database subscription exists, create one
+    if (!dbSubscription) {
+      console.log('📝 Creating database subscription for user:', clerkUserId)
+      dbSubscription = await createSubscription(
+        clerkUserId,
+        plan.id as 'basic' | 'standard' | 'pro',
+        subscription.id,
+        customer.id
+      )
+    }
+    
+    // Use database subscription data for accurate credit tracking
+    const totalCredits = plan.credits
+    const remainingCredits = dbSubscription?.credits || 0
+    const usedCredits = totalCredits - remainingCredits
+    
     return {
-      credits: plan.credits,
-      usedCredits: 0,
-      remainingCredits: plan.credits,
+      credits: totalCredits,
+      usedCredits: usedCredits,
+      remainingCredits: remainingCredits,
       plan: plan.id,
       planName: plan.name,
       status: subscription.status,
@@ -185,12 +204,30 @@ export async function checkAndConsumeStripeDirectCredits(
       }
     }
     
-    // For now, just return success without actually consuming credits
-    // In a full implementation, you'd track usage in a database
+    // Actually consume credits using database
+    const deductResult = await deductCredits(
+      clerkUserId,
+      action || 'feature_usage',
+      requiredCredits,
+      `Consumed ${requiredCredits} credits for ${action || 'feature usage'}`
+    )
+    
+    if (!deductResult.success) {
+      return {
+        success: false,
+        remainingCredits: deductResult.remainingCredits,
+        currentCredits: deductResult.remainingCredits,
+        requiredCredits,
+        plan: creditData.plan,
+        planName: creditData.planName,
+        message: 'Failed to consume credits'
+      }
+    }
+    
     return {
       success: true,
-      remainingCredits: creditData.remainingCredits - requiredCredits,
-      currentCredits: creditData.remainingCredits,
+      remainingCredits: deductResult.remainingCredits,
+      currentCredits: deductResult.remainingCredits,
       requiredCredits,
       plan: creditData.plan,
       planName: creditData.planName
