@@ -21,6 +21,8 @@
     "stripe:listen": "stripe listen --forward-to localhost:3000/api/webhooks/stripe",
     "db:clean": "node scripts/run-database-cleanup.js",
     "db:reset": "./scripts/reset-db.sh",
+    "clean:all": "node scripts/clean-all-data.js",
+    "nuclear:cleanup": "node scripts/nuclear-cleanup.js",
     "deploy:check": "node scripts/pre-deployment-test.js",
     "deploy:prepare": "npm run deploy:check && npm run build",
     "replit:dev": "npm run dev",
