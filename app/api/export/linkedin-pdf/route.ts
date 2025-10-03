@@ -243,7 +243,7 @@ export async function POST(request: NextRequest) {
     
     await browser.close()
 
-    return new NextResponse(pdf, {
+    return new NextResponse(new Uint8Array(pdf), {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="linkedin-profile-${userName?.replace(/\s+/g, '-') || 'optimized'}.pdf"`,

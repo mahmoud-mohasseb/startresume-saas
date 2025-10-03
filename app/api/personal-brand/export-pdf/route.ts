@@ -385,7 +385,7 @@ export async function POST(request: NextRequest) {
     const filename = `Personal_Brand_Strategy_${brandData.industry?.replace(/\s+/g, '_') || 'Report'}_${new Date().toISOString().split('T')[0]}.pdf`
 
     // Return the PDF file directly
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(new Uint8Array(pdfBuffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',

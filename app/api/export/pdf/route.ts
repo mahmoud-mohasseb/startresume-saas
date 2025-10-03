@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     await browser.close()
 
     // Return the PDF file directly
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(new Uint8Array(pdfBuffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',

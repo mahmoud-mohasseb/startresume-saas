@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
 
       const filename = `${resume.title?.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'resume'}_resume.pdf`
 
-      return new NextResponse(pdfBuffer, {
+      return new NextResponse(new Uint8Array(pdfBuffer), {
         status: 200,
         headers: {
           'Content-Type': 'application/pdf',
@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
       const docxBuffer = htmlToDocx(htmlContent)
       const filename = `${resume.title?.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'resume'}_resume.docx`
       
-      return new NextResponse(docxBuffer, {
+      return new NextResponse(new Uint8Array(docxBuffer), {
         status: 200,
         headers: {
           'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
