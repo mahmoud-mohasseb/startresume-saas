@@ -205,10 +205,10 @@ export default function DashboardLayout({
         </aside>
 
         {/* Mobile Header */}
-        <header className="lg:hidden relative bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-white/20 dark:border-gray-700/30 shadow-lg sticky top-0 z-50">
+        <header className="lg:hidden relative bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-lg sticky top-0 z-50">
           <div className="flex items-center justify-between h-16 px-4">
             {/* Mobile Logo */}
-            <Link href="/" className="flex items-center">
+            <Link href="/dashboard" className="flex items-center">
               <img 
                 src="/logo.svg" 
                 alt="StartResume" 
@@ -222,11 +222,18 @@ export default function DashboardLayout({
               <UserButton />
               <button
                 onClick={() => {
-                  console.log('Mobile menu toggled:', !isMobileMenuOpen)
-                  setIsMobileMenuOpen(!isMobileMenuOpen)
+                  console.log('🔄 Mobile menu button clicked. Current state:', isMobileMenuOpen)
+                  const newState = !isMobileMenuOpen
+                  setIsMobileMenuOpen(newState)
+                  console.log('🔄 New mobile menu state:', newState)
                 }}
-                className="flex items-center justify-center p-2 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-blue-50/80 dark:hover:bg-blue-900/20 transition-colors lg:hidden border border-gray-200 dark:border-gray-700"
-                aria-label="Toggle mobile menu"
+                className={`flex items-center justify-center p-3 rounded-lg transition-all duration-200 lg:hidden border-2 ${
+                  isMobileMenuOpen 
+                    ? 'bg-blue-500 text-white border-blue-500 shadow-lg' 
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-300 dark:hover:border-blue-600'
+                }`}
+                aria-label={isMobileMenuOpen ? 'Close mobile menu' : 'Open mobile menu'}
+                aria-expanded={isMobileMenuOpen}
                 type="button"
               >
                 {isMobileMenuOpen ? (
@@ -237,41 +244,58 @@ export default function DashboardLayout({
               </button>
             </div>
           </div>
+          
 
-          {/* Mobile Navigation Dropdown */}
+          {/* Mobile Navigation Dropdown - Always render but control visibility */}
           <div 
-            className={`absolute top-full left-0 right-0 bg-white/98 dark:bg-gray-900/98 backdrop-blur-xl border-b border-white/20 dark:border-gray-700/30 shadow-xl transition-all duration-300 ease-in-out z-40 ${
+            className={`lg:hidden absolute top-full left-0 right-0 w-full bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-2xl transition-all duration-300 ease-in-out z-50 ${
               isMobileMenuOpen 
-                ? 'opacity-100 visible transform translate-y-0' 
-                : 'opacity-0 invisible transform -translate-y-2'
+                ? 'opacity-100 visible max-h-screen' 
+                : 'opacity-0 invisible max-h-0 overflow-hidden'
             }`}
-            style={{ 
-              display: isMobileMenuOpen ? 'block' : 'none' // Fallback for older browsers
-            }}
           >
-            <nav className="px-4 py-4 space-y-1 max-h-[80vh] overflow-y-auto">
-              {navigationItems.map((item) => {
+            <nav className="px-4 py-6 space-y-2">
+              
+              {navigationItems.map((item, index) => {
                 const IconComponent = item.icon
                 return (
                   <Link 
-                    key={item.href}
+                    key={`${item.href}-${index}`}
                     href={item.href}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 block w-full ${
+                    onClick={(e) => {
+                      console.log('Navigating to:', item.href)
+                      setIsMobileMenuOpen(false)
+                    }}
+                    className={`flex items-center gap-4 px-4 py-4 rounded-xl font-medium text-base transition-all duration-200 w-full border ${
                       isActive(item.href)
-                        ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white shadow-lg shadow-blue-500/25'
-                        : 'text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50/80 dark:hover:bg-blue-900/20'
+                        ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white shadow-lg border-blue-500'
+                        : 'text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 border-gray-200 dark:border-gray-700'
                     }`}
+                    style={{ minHeight: '56px' }} // Ensure minimum touch target
                   >
-                    <IconComponent className={`h-5 w-5 flex-shrink-0 ${isActive(item.href) ? 'text-white' : item.color}`} />
-                    <span className="leading-none">{item.label}</span>
+                    <IconComponent className={`h-6 w-6 flex-shrink-0 ${isActive(item.href) ? 'text-white' : item.color}`} />
+                    <span className="font-medium text-left">{item.label}</span>
                   </Link>
                 )
               })}
               
               {/* Mobile Credit Widget */}
-              <div className="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
-                <PlanBasedCreditWidget />
+              <div className="pt-6 mt-6 border-t border-gray-200 dark:border-gray-700">
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
+                  <PlanBasedCreditWidget />
+                </div>
+              </div>
+              
+              {/* Additional Mobile Menu Items */}
+              <div className="pt-4 space-y-2">
+                <Link 
+                  href="/dashboard/billing"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-4 px-4 py-3 rounded-xl font-medium text-base text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700"
+                >
+                  <CreditCard className="h-5 w-5 text-green-500" />
+                  <span>Billing & Plans</span>
+                </Link>
               </div>
             </nav>
           </div>
@@ -283,6 +307,67 @@ export default function DashboardLayout({
             className="lg:hidden fixed inset-0 bg-black/20 backdrop-blur-sm z-30"
             onClick={() => setIsMobileMenuOpen(false)}
           />
+        )}
+
+        {/* Fallback Mobile Menu - Full Screen */}
+        {isMobileMenuOpen && (
+          <div className="lg:hidden fixed inset-0 z-60 bg-white dark:bg-gray-900">
+            <div className="flex flex-col h-full">
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Navigation</h2>
+                <button
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              
+              {/* Navigation Links */}
+              <div className="flex-1 overflow-y-auto p-4">
+                <div className="space-y-3">
+                  {navigationItems.map((item, index) => {
+                    const IconComponent = item.icon
+                    return (
+                      <Link
+                        key={`fallback-${item.href}-${index}`}
+                        href={item.href}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className={`flex items-center gap-4 p-4 rounded-xl text-lg font-medium transition-colors ${
+                          isActive(item.href)
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                        }`}
+                      >
+                        <IconComponent className={`h-6 w-6 ${isActive(item.href) ? 'text-white' : item.color}`} />
+                        <span>{item.label}</span>
+                      </Link>
+                    )
+                  })}
+                </div>
+                
+                {/* Additional Links */}
+                <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
+                  <Link
+                    href="/dashboard/billing"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-4 p-4 rounded-xl text-lg font-medium bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                  >
+                    <CreditCard className="h-6 w-6 text-green-500" />
+                    <span>Billing & Plans</span>
+                  </Link>
+                </div>
+              </div>
+              
+              {/* Footer */}
+              <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
+                  <PlanBasedCreditWidget />
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Main Content */}
