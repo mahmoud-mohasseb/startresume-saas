@@ -203,7 +203,6 @@ export async function getOrCreateUserSubscription(clerkId: string): Promise<User
               user_id: clerkId,
               plan: null,
               credits: 0,
-              credits_used: 0,
               status: 'inactive',
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
@@ -220,7 +219,6 @@ export async function getOrCreateUserSubscription(clerkId: string): Promise<User
         user_id: clerkId,
         plan: null,
         credits: 0,
-        credits_used: 0,
         status: 'inactive',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()

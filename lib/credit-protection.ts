@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useUser } from '@clerk/nextjs'
-import { UNIFIED_CREDIT_COST } from './unified-credit-system'
+import { CREDIT_COSTS } from './credit-costs'
 
 export interface CreditCheck {
   hasCredits: boolean
@@ -32,7 +32,7 @@ export function useFeatureAccess(feature: string): FeatureAccess {
   const [creditCheck, setCreditCheck] = useState<CreditCheck | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const requiredCredits = UNIFIED_CREDIT_COST // Always 1 credit per feature
+  const requiredCredits = 1 // Always 1 credit per feature (unified system)
 
   const checkCredits = async () => {
     if (!isLoaded || !user) {

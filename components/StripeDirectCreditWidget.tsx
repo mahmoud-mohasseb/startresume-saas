@@ -63,8 +63,8 @@ export default function StripeDirectCreditWidget() {
     return 'bg-red-500'
   }
 
-  const progressPercentage = subscription.totalCredits > 0 
-    ? (subscription.remainingCredits / subscription.totalCredits) * 100 
+  const progressPercentage = subscription.usage.limit > 0 
+    ? (subscription.usage.remaining / subscription.usage.limit) * 100 
     : 0
 
   return (
@@ -75,9 +75,9 @@ export default function StripeDirectCreditWidget() {
       >
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-2">
-            {getPlanIcon(subscription.plan)}
+            {getPlanIcon(subscription.plan.type)}
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              {subscription.planName}
+              {subscription.plan.name}
             </span>
           </div>
           {isExpanded ? (
@@ -90,22 +90,22 @@ export default function StripeDirectCreditWidget() {
         <div className="flex items-center space-x-2 mb-2">
           <Sparkles className="w-4 h-4 text-blue-500" />
           <span className="text-lg font-bold text-gray-900 dark:text-white">
-            {subscription.remainingCredits}
+            {subscription.usage.remaining}
           </span>
           <span className="text-sm text-gray-500 dark:text-gray-400">
-            / {subscription.totalCredits}
+            / {subscription.usage.limit}
           </span>
         </div>
 
         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
           <div 
-            className={`h-2 rounded-full transition-all duration-300 ${getProgressColor(subscription.remainingCredits, subscription.totalCredits)}`}
+            className={`h-2 rounded-full transition-all duration-300 ${getProgressColor(subscription.usage.remaining, subscription.usage.limit)}`}
             style={{ width: `${progressPercentage}%` }}
           ></div>
         </div>
 
         <p className="text-xs text-gray-500 dark:text-gray-400">
-          {subscription.usedCredits} used this period
+          {subscription.usage.current} used this period
         </p>
       </div>
 
@@ -114,14 +114,14 @@ export default function StripeDirectCreditWidget() {
           <div className="space-y-2 text-xs text-gray-600 dark:text-gray-400">
             <div className="flex justify-between">
               <span>Status:</span>
-              <span className={`font-medium ${subscription.isActive ? 'text-green-600' : 'text-red-600'}`}>
-                {subscription.isActive ? 'Active' : 'Inactive'}
+              <span className={`font-medium ${subscription.plan.isActive ? 'text-green-600' : 'text-red-600'}`}>
+                {subscription.plan.isActive ? 'Active' : 'Inactive'}
               </span>
             </div>
-            {subscription.currentPeriodEnd && (
+            {subscription.period.end && (
               <div className="flex justify-between">
                 <span>Resets:</span>
-                <span>{new Date(subscription.currentPeriodEnd).toLocaleDateString()}</span>
+                <span>{new Date(subscription.period.end).toLocaleDateString()}</span>
               </div>
             )}
           </div>

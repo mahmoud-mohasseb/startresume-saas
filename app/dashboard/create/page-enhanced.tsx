@@ -26,7 +26,7 @@ import {
   X,
   Brain
 } from 'lucide-react'
-import { FeatureGuard } from '@/components/FeatureGuard'
+import PlanBasedFeatureGuard from '@/components/PlanBasedFeatureGuard'
 
 interface ResumeInputs {
   // Personal Information
@@ -663,8 +663,8 @@ function CreateResumePageContent() {
 
 export default function CreateResumePage() {
   return (
-    <FeatureGuard feature="resume_generation">
+    <PlanBasedFeatureGuard feature="resume_generation">
       <CreateResumePageContent />
-    </FeatureGuard>
+    </PlanBasedFeatureGuard>
   )
 }

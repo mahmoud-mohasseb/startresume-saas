@@ -13,12 +13,12 @@ export const createClient = () => {
 }
 
 // Client-side Supabase client (lazy initialization)
-let supabaseInstance: ReturnType<typeof createSupabaseClient> | null = null
+let supabaseInstance: ReturnType<typeof createClient> | null = null
 
 export const supabase = (() => {
   if (typeof window === 'undefined') {
     // Server-side: return a mock object to prevent hydration issues
-    return {} as ReturnType<typeof createSupabaseClient>
+    return {} as ReturnType<typeof createClient>
   }
   
   if (!supabaseInstance) {

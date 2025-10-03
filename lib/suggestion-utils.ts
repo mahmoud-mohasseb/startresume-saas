@@ -207,8 +207,8 @@ export function emergencyCleanup() {
     // Clear any React DevTools data that might be corrupted
     if ((window as any).__REACT_DEVTOOLS_GLOBAL_HOOK__) {
       try {
-        (window as any).__REACT_DEVTOOLS_GLOBAL_HOOK__.onCommitFiberRoot = null
-        (window as any).__REACT_DEVTOOLS_GLOBAL_HOOK__.onCommitFiberUnmount = null
+        delete (window as any).__REACT_DEVTOOLS_GLOBAL_HOOK__.onCommitFiberRoot
+        delete (window as any).__REACT_DEVTOOLS_GLOBAL_HOOK__.onCommitFiberUnmount
       } catch (e) {
         // Silent fail
       }

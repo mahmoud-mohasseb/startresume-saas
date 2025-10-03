@@ -77,8 +77,8 @@ const plans: Plan[] = [
 ]
 
 export function PlanSelector() {
-  const { subscription, applySelectedPlan, processPayment, isLoading } = useSubscription()
-  const [selectedPlanId, setSelectedPlanId] = useState<string>(subscription?.plan || 'free')
+  const { subscription, isLoading } = useSubscription()
+  const [selectedPlanId, setSelectedPlanId] = useState<string>(subscription?.plan?.type || 'free')
   const [applying, setApplying] = useState(false)
 
   const handlePlanSelect = async (planId: string) => {
@@ -88,34 +88,12 @@ export function PlanSelector() {
     try {
       console.log('🎯 Selecting plan:', planId)
       
-      if (planId === 'free') {
-        // Free plan - apply immediately
-        await applySelectedPlan(planId)
-        setSelectedPlanId(planId)
-        
-        toast.success(`✅ Free plan activated! You now have 3 credits.`)
-      } else {
-        // Paid plan - show payment options
-        const selectedPlan = plans.find(p => p.id === planId)
-        
-        // For development, simulate payment
-        if (process.env.NODE_ENV === 'development') {
-          console.log('🧪 DEVELOPMENT: Simulating payment for', planId)
-          
-          // Apply plan immediately in development
-          await applySelectedPlan(planId)
-          setSelectedPlanId(planId)
-          
-          toast.success(`✅ ${selectedPlan?.name} plan activated! You now have ${selectedPlan?.credits} credits. (Development Mode)`)
-        } else {
-          // Production - redirect to Stripe checkout
-          await processPayment(planId)
-        }
-      }
+      // Redirect to billing page for plan management
+      window.location.href = '/dashboard/billing'
       
     } catch (error) {
-      console.error('❌ Error applying plan:', error)
-      toast.error('Failed to apply plan. Please try again.')
+      console.error('❌ Error selecting plan:', error)
+      toast.error('Failed to redirect to billing. Please try again.')
     } finally {
       setApplying(false)
     }
@@ -249,20 +227,20 @@ export function PlanSelector() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Current Plan: {subscription.planName}
-                {subscription.stripeSubscription && (
+                Current Plan: {subscription.plan.name}
+                {subscription.plan.isActive && (
                   <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
                     Paid
                   </span>
                 )}
               </h3>
               <p className="text-gray-600 dark:text-gray-400">
-                {subscription.remainingCredits} of {subscription.credits} credits remaining
+                {subscription.usage.remaining} of {subscription.usage.limit} credits remaining
               </p>
             </div>
             <div className="text-right">
               <div className="text-2xl font-bold text-blue-600">
-                {subscription.remainingCredits}
+                {subscription.usage.remaining}
               </div>
               <div className="text-sm text-gray-500">credits left</div>
             </div>
@@ -274,7 +252,7 @@ export function PlanSelector() {
               <div 
                 className="bg-blue-500 h-2 rounded-full transition-all duration-300"
                 style={{ 
-                  width: `${(subscription.remainingCredits / subscription.credits) * 100}%` 
+                  width: `${(subscription.usage.remaining / subscription.usage.limit) * 100}%` 
                 }}
               ></div>
             </div>
@@ -284,19 +262,19 @@ export function PlanSelector() {
           <div className="mt-4 grid grid-cols-3 gap-4 text-center">
             <div>
               <div className="text-lg font-semibold text-gray-900 dark:text-white">
-                {subscription.credits}
+                {subscription.usage.limit}
               </div>
               <div className="text-xs text-gray-500">Total</div>
             </div>
             <div>
               <div className="text-lg font-semibold text-red-600">
-                {subscription.usedCredits}
+                {subscription.usage.current}
               </div>
               <div className="text-xs text-gray-500">Used</div>
             </div>
             <div>
               <div className="text-lg font-semibold text-green-600">
-                {subscription.remainingCredits}
+                {subscription.usage.remaining}
               </div>
               <div className="text-xs text-gray-500">Remaining</div>
             </div>
