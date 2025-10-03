@@ -32,6 +32,27 @@ export default function DashboardLayout({
     setIsMobileMenuOpen(false)
   }, [pathname])
 
+  // Close mobile menu when clicking outside or pressing escape
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsMobileMenuOpen(false)
+      }
+    }
+
+    if (isMobileMenuOpen) {
+      document.addEventListener('keydown', handleEscape)
+      document.body.style.overflow = 'hidden' // Prevent background scroll
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape)
+      document.body.style.overflow = 'unset'
+    }
+  }, [isMobileMenuOpen])
+
   if (!isLoaded) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50 dark:bg-gradient-to-br dark:from-blue-900 dark:via-gray-800 dark:to-teal-900 flex items-center justify-center">
@@ -184,7 +205,7 @@ export default function DashboardLayout({
         </aside>
 
         {/* Mobile Header */}
-        <header className="lg:hidden bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-white/20 dark:border-gray-700/30 shadow-lg sticky top-0 z-50">
+        <header className="lg:hidden relative bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-white/20 dark:border-gray-700/30 shadow-lg sticky top-0 z-50">
           <div className="flex items-center justify-between h-16 px-4">
             {/* Mobile Logo */}
             <Link href="/" className="flex items-center">
@@ -197,42 +218,72 @@ export default function DashboardLayout({
             </Link>
             
             {/* Mobile Menu Button */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <UserButton />
               <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-2 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-blue-50/80 dark:hover:bg-blue-900/20 transition-colors"
+                onClick={() => {
+                  console.log('Mobile menu toggled:', !isMobileMenuOpen)
+                  setIsMobileMenuOpen(!isMobileMenuOpen)
+                }}
+                className="flex items-center justify-center p-2 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-blue-50/80 dark:hover:bg-blue-900/20 transition-colors lg:hidden border border-gray-200 dark:border-gray-700"
+                aria-label="Toggle mobile menu"
+                type="button"
               >
-                {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                {isMobileMenuOpen ? (
+                  <X className="h-6 w-6" />
+                ) : (
+                  <Menu className="h-6 w-6" />
+                )}
               </button>
             </div>
           </div>
 
-          {/* Mobile Navigation */}
-          {isMobileMenuOpen && (
-            <div className="absolute top-full left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-white/20 dark:border-gray-700/30 shadow-lg">
-              <nav className="px-4 py-4 space-y-2 max-h-96 overflow-y-auto">
-                {navigationItems.map((item) => {
-                  const IconComponent = item.icon
-                  return (
-                    <Link 
-                      key={item.href}
-                      href={item.href}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 ${
-                        isActive(item.href)
-                          ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white shadow-lg shadow-blue-500/25'
-                          : 'text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50/80 dark:hover:bg-blue-900/20'
-                      }`}
-                    >
-                      <IconComponent className={`h-5 w-5 flex-shrink-0 ${isActive(item.href) ? 'text-white' : item.color}`} />
-                      <span className="leading-none">{item.label}</span>
-                    </Link>
-                  )
-                })}
-              </nav>
-            </div>
-          )}
+          {/* Mobile Navigation Dropdown */}
+          <div 
+            className={`absolute top-full left-0 right-0 bg-white/98 dark:bg-gray-900/98 backdrop-blur-xl border-b border-white/20 dark:border-gray-700/30 shadow-xl transition-all duration-300 ease-in-out z-40 ${
+              isMobileMenuOpen 
+                ? 'opacity-100 visible transform translate-y-0' 
+                : 'opacity-0 invisible transform -translate-y-2'
+            }`}
+            style={{ 
+              display: isMobileMenuOpen ? 'block' : 'none' // Fallback for older browsers
+            }}
+          >
+            <nav className="px-4 py-4 space-y-1 max-h-[80vh] overflow-y-auto">
+              {navigationItems.map((item) => {
+                const IconComponent = item.icon
+                return (
+                  <Link 
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 block w-full ${
+                      isActive(item.href)
+                        ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white shadow-lg shadow-blue-500/25'
+                        : 'text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50/80 dark:hover:bg-blue-900/20'
+                    }`}
+                  >
+                    <IconComponent className={`h-5 w-5 flex-shrink-0 ${isActive(item.href) ? 'text-white' : item.color}`} />
+                    <span className="leading-none">{item.label}</span>
+                  </Link>
+                )
+              })}
+              
+              {/* Mobile Credit Widget */}
+              <div className="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
+                <PlanBasedCreditWidget />
+              </div>
+            </nav>
+          </div>
         </header>
+
+        {/* Mobile Menu Overlay */}
+        {isMobileMenuOpen && (
+          <div 
+            className="lg:hidden fixed inset-0 bg-black/20 backdrop-blur-sm z-30"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+        )}
 
         {/* Main Content */}
         <main className={`flex-1 transition-all duration-300 ${
