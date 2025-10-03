@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { currentUser } from '@clerk/nextjs/server'
 import { checkAndConsumeStripeDirectCredits } from '@/lib/stripe-direct-credits'
+import { validateCredits, preventCreditIssues } from '@/lib/credit-validation'
 
 export interface CreditCheckResult {
   success: boolean
@@ -26,6 +27,17 @@ export async function withCreditCheck(
         success: false,
         user: null,
         error: 'Authentication required'
+      }
+    }
+
+    // Pre-validate credits to prevent issues
+    const preventionCheck = await preventCreditIssues(user.id, action, requiredCredits)
+    
+    if (!preventionCheck.allowed) {
+      return {
+        success: false,
+        user,
+        error: preventionCheck.message || 'Credit validation failed'
       }
     }
 

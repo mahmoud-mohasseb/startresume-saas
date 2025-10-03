@@ -1,12 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { createSubscription, getSubscription, refreshMonthlyCredits } from '@/lib/supabase-subscriptions'
+import { 
+  createSubscription, 
+  getSubscription, 
+  refreshMonthlyCredits, 
+  updateSubscriptionStatus,
+  cancelSubscription,
+  syncCreditsWithStripe 
+} from '@/lib/supabase-subscriptions'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-06-20',
 })
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
+
+// Plan configurations matching Stripe price IDs
+const STRIPE_PLANS: Record<string, { credits: number; name: string }> = {
+  'price_1S7dpfFlaHFpdvA4YJj1omFc': { credits: 10, name: 'Basic' },
+  'price_1S7drgFlaHFpdvA4EaEaCtrA': { credits: 50, name: 'Standard' },
+  'price_1S7dsBFlaHFpdvA42nBRrxgZ': { credits: 200, name: 'Pro' }
+}
+
+function getPlanCredits(subscription: Stripe.Subscription): number {
+  const priceId = subscription.items.data[0]?.price.id
+  return STRIPE_PLANS[priceId]?.credits || 0
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -53,12 +72,18 @@ export async function POST(request: NextRequest) {
         const clerkUserId = subscription.metadata?.clerk_user_id
         
         if (clerkUserId) {
-          console.log('Subscription updated for user:', clerkUserId)
+          console.log('Subscription updated for user:', clerkUserId, 'status:', subscription.status)
+          
+          // Update subscription status in database
+          await updateSubscriptionStatus(clerkUserId, subscription.status as 'active' | 'canceled' | 'past_due')
           
           // Handle subscription status changes
           if (subscription.status === 'active') {
             // Refresh credits if subscription becomes active
             await refreshMonthlyCredits(clerkUserId)
+          } else if (subscription.status === 'canceled' || subscription.status === 'past_due') {
+            // Don't automatically restart - let user manually reactivate
+            console.log('Subscription canceled/past_due - preventing auto-restart')
           }
         }
         break
@@ -69,11 +94,10 @@ export async function POST(request: NextRequest) {
         const clerkUserId = subscription.metadata?.clerk_user_id
         
         if (clerkUserId) {
-          console.log('Subscription canceled for user:', clerkUserId)
+          console.log('Subscription deleted for user:', clerkUserId)
           
-          // Update subscription status in database
-          // Note: You might want to implement a function to update subscription status
-          // For now, we'll just log it
+          // Cancel subscription in database
+          await cancelSubscription(clerkUserId)
         }
         break
       }
@@ -91,8 +115,17 @@ export async function POST(request: NextRequest) {
           if (clerkUserId) {
             console.log('Payment succeeded, refreshing credits for user:', clerkUserId)
             
+            // Update subscription status to active
+            await updateSubscriptionStatus(clerkUserId, 'active')
+            
             // Refresh monthly credits on successful payment
             await refreshMonthlyCredits(clerkUserId)
+            
+            // Sync credits to ensure consistency
+            const planCredits = getPlanCredits(subscription)
+            if (planCredits > 0) {
+              await syncCreditsWithStripe(clerkUserId, planCredits, true)
+            }
           }
         }
         break
@@ -111,8 +144,11 @@ export async function POST(request: NextRequest) {
           if (clerkUserId) {
             console.log('Payment failed for user:', clerkUserId)
             
-            // Handle payment failure - you might want to send an email
-            // or update subscription status
+            // Update subscription status to past_due
+            await updateSubscriptionStatus(clerkUserId, 'past_due')
+            
+            // Don't automatically cancel - give user chance to update payment
+            console.log('Subscription marked as past_due - user can update payment method')
           }
         }
         break

@@ -279,9 +279,20 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       })
 
       if (!response.ok) {
+        // Handle specific error cases
+        const errorData = await response.json().catch(() => ({}))
+        
+        if (response.status === 402) {
+          toast.error(errorData.error || 'Insufficient credits')
+        } else if (response.status === 401) {
+          toast.error('Please sign in to continue')
+        } else {
+          toast.error(errorData.error || 'Failed to consume credit')
+        }
+        
         // Revert optimistic update on failure
         await forceRefresh()
-        throw new Error('Failed to consume credit')
+        return false
       }
 
       const data = await response.json()
@@ -327,6 +338,15 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         setSubscription(updatedSubscription)
         setLastUpdated(new Date())
         console.log(`✅ Credit consumed successfully: ${data.subscription.remainingCredits} remaining`)
+        
+        // Emit event for other components to sync
+        window.dispatchEvent(new CustomEvent('credits-updated', { 
+          detail: { 
+            remainingCredits: data.subscription.remainingCredits,
+            feature: feature,
+            amount: amount
+          }
+        }))
       }
 
       return true

@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { currentUser } from '@clerk/nextjs/server'
-import { 
-  forceSyncWithStripe, 
-  getStripeDirectCredits, 
-  getCurrentUserSubscription,
-  logSubscriptionEvent 
-} from '@/lib/subscription-manager'
+import { CreditSyncService } from '@/lib/credit-sync-service'
+import { getStripeDirectCredits } from '@/lib/stripe-direct-credits'
+import { getSubscription } from '@/lib/supabase-subscriptions'
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,47 +11,53 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { forceSync = false } = await request.json().catch(() => ({}))
+
     console.log(`=== CREDIT SYNC REQUEST ===`)
-    console.log(`User ID: ${user.id}`)
+    console.log(`User ID: ${user.id}, Force Sync: ${forceSync}`)
 
-    // Try Stripe-direct credit check first
-    const stripeCredits = await getStripeDirectCredits(user.id)
-    console.log(`Stripe-direct credits:`, stripeCredits)
+    // Use the new credit sync service
+    const syncResult = await CreditSyncService.syncUserCredits(user.id, forceSync)
+    
+    // Get updated data after sync
+    const [stripeData, dbSubscription] = await Promise.all([
+      getStripeDirectCredits(user.id),
+      getSubscription(user.id)
+    ])
 
-    // Force sync with Stripe if needed
-    let syncResult = false
-    if (stripeCredits.status === 'active' && stripeCredits.credits > 0) {
-      syncResult = await forceSyncWithStripe(user.id)
-      console.log(`Force sync result: ${syncResult}`)
-    }
-
-    // Get updated subscription after sync
-    const subscription = await getCurrentUserSubscription()
-    console.log(`Final subscription:`, subscription)
-
-    // Log the sync attempt
-    await logSubscriptionEvent(user.id, 'credit_sync_requested', {
-      stripeCredits,
-      syncResult,
-      finalSubscription: subscription
-    })
+    console.log(`Sync result:`, syncResult)
 
     return NextResponse.json({
-      success: true,
-      credits: stripeCredits.credits,
-      plan: stripeCredits.plan,
-      status: stripeCredits.status,
-      syncPerformed: syncResult,
-      subscription: subscription,
-      message: syncResult 
-        ? 'Credits synced successfully with Stripe'
-        : 'Using current credit balance'
+      success: syncResult.success,
+      message: syncResult.message,
+      syncDetails: {
+        discrepancyFound: syncResult.discrepancyFound,
+        beforeSync: syncResult.beforeSync,
+        afterSync: syncResult.afterSync
+      },
+      currentState: {
+        credits: stripeData.remainingCredits,
+        plan: stripeData.plan,
+        planName: stripeData.planName,
+        status: stripeData.status,
+        isActive: stripeData.isActive
+      },
+      subscription: dbSubscription ? {
+        plan: dbSubscription.plan,
+        credits: dbSubscription.credits,
+        status: dbSubscription.status,
+        stripeSubscriptionId: dbSubscription.stripe_subscription_id
+      } : null
     })
 
   } catch (error) {
     console.error('Error syncing credits:', error)
     return NextResponse.json(
-      { error: 'Failed to sync credits', details: error.message },
+      { 
+        success: false,
+        error: 'Failed to sync credits', 
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     )
   }
@@ -67,22 +70,43 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get current credits without syncing
-    const stripeCredits = await getStripeDirectCredits(user.id)
-    const subscription = await getCurrentUserSubscription()
+    // Get current credits and validate consistency
+    const [stripeData, dbSubscription, validation] = await Promise.all([
+      getStripeDirectCredits(user.id),
+      getSubscription(user.id),
+      CreditSyncService.validateCreditConsistency(user.id)
+    ])
 
     return NextResponse.json({
       success: true,
-      credits: stripeCredits.credits,
-      plan: stripeCredits.plan,
-      status: stripeCredits.status,
-      subscription: subscription
+      currentState: {
+        credits: stripeData.remainingCredits,
+        plan: stripeData.plan,
+        planName: stripeData.planName,
+        status: stripeData.status,
+        isActive: stripeData.isActive
+      },
+      subscription: dbSubscription ? {
+        plan: dbSubscription.plan,
+        credits: dbSubscription.credits,
+        status: dbSubscription.status,
+        stripeSubscriptionId: dbSubscription.stripe_subscription_id
+      } : null,
+      validation: {
+        isConsistent: validation.isConsistent,
+        issues: validation.issues,
+        recommendations: validation.recommendations
+      }
     })
 
   } catch (error) {
     console.error('Error getting credits:', error)
     return NextResponse.json(
-      { error: 'Failed to get credits', details: error.message },
+      { 
+        success: false,
+        error: 'Failed to get credits', 
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     )
   }

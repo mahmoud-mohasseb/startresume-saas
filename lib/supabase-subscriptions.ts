@@ -205,25 +205,46 @@ export async function deductCredits(
     // Get current subscription
     const subscription = await getSubscription(clerkUserId)
     if (!subscription) {
+      console.error('No subscription found for user:', clerkUserId)
       return { success: false, remainingCredits: 0 }
+    }
+
+    // Check if subscription is active
+    if (subscription.status !== 'active') {
+      console.error('Subscription not active for user:', clerkUserId, 'status:', subscription.status)
+      return { success: false, remainingCredits: subscription.credits }
     }
 
     // Check if user has enough credits
     if (subscription.credits < creditsToDeduct) {
+      console.error('Insufficient credits for user:', clerkUserId, 'required:', creditsToDeduct, 'available:', subscription.credits)
       return { success: false, remainingCredits: subscription.credits }
     }
 
-    // Deduct credits
+    // Deduct credits atomically
     const newCredits = subscription.credits - creditsToDeduct
-    const updatedSubscription = await updateSubscriptionCredits(clerkUserId, newCredits)
     
-    if (!updatedSubscription) {
+    // Use atomic update to prevent race conditions
+    const { data: updatedSubscription, error } = await supabase
+      .from('subscriptions')
+      .update({ 
+        credits: newCredits,
+        updated_at: new Date().toISOString()
+      })
+      .eq('clerk_user_id', clerkUserId)
+      .eq('credits', subscription.credits) // Ensure credits haven't changed since we read them
+      .select()
+      .single()
+    
+    if (error || !updatedSubscription) {
+      console.error('Failed to update credits atomically:', error)
       return { success: false, remainingCredits: subscription.credits }
     }
 
     // Log credit usage
     await logCreditUsage(clerkUserId, action, creditsToDeduct, newCredits, description)
 
+    console.log(`✅ Credits deducted successfully: ${subscription.credits} → ${newCredits} for user ${clerkUserId}`)
     return { success: true, remainingCredits: newCredits }
   } catch (error) {
     console.error('Error deducting credits:', error)
@@ -296,11 +317,102 @@ export async function getCreditHistory(
   }
 }
 
+// Update subscription status
+export async function updateSubscriptionStatus(
+  clerkUserId: string,
+  status: 'active' | 'canceled' | 'past_due'
+): Promise<Subscription | null> {
+  try {
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .update({ 
+        status: status,
+        updated_at: new Date().toISOString()
+      })
+      .eq('clerk_user_id', clerkUserId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error updating subscription status:', error)
+      return null
+    }
+
+    return data
+  } catch (error) {
+    console.error('Error updating subscription status:', error)
+    return null
+  }
+}
+
+// Cancel subscription
+export async function cancelSubscription(clerkUserId: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('subscriptions')
+      .update({ 
+        status: 'canceled',
+        updated_at: new Date().toISOString()
+      })
+      .eq('clerk_user_id', clerkUserId)
+
+    if (error) {
+      console.error('Error canceling subscription:', error)
+      return false
+    }
+
+    // Log the cancellation
+    await logCreditUsage(
+      clerkUserId,
+      'subscription_canceled',
+      0,
+      0,
+      'Subscription canceled'
+    )
+
+    return true
+  } catch (error) {
+    console.error('Error canceling subscription:', error)
+    return false
+  }
+}
+
+// Prevent automatic subscription restart
+export async function preventAutoRestart(clerkUserId: string): Promise<boolean> {
+  try {
+    // Add a flag to prevent auto-restart
+    const { error } = await supabase
+      .from('subscriptions')
+      .update({ 
+        status: 'canceled',
+        updated_at: new Date().toISOString()
+      })
+      .eq('clerk_user_id', clerkUserId)
+      .eq('status', 'active')
+
+    if (error) {
+      console.error('Error preventing auto-restart:', error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error preventing auto-restart:', error)
+    return false
+  }
+}
+
 // Monthly credit refresh (to be called by cron job or webhook)
 export async function refreshMonthlyCredits(clerkUserId: string): Promise<boolean> {
   try {
     const subscription = await getSubscription(clerkUserId)
     if (!subscription) {
+      return false
+    }
+
+    // Only refresh if subscription is active
+    if (subscription.status !== 'active') {
+      console.log('Subscription not active, skipping credit refresh')
       return false
     }
 
@@ -322,6 +434,45 @@ export async function refreshMonthlyCredits(clerkUserId: string): Promise<boolea
     return false
   } catch (error) {
     console.error('Error refreshing monthly credits:', error)
+    return false
+  }
+}
+
+// Sync credits between Stripe and database
+export async function syncCreditsWithStripe(
+  clerkUserId: string,
+  stripeCredits: number,
+  forceUpdate: boolean = false
+): Promise<boolean> {
+  try {
+    const subscription = await getSubscription(clerkUserId)
+    
+    if (!subscription) {
+      console.log('No subscription found for credit sync')
+      return false
+    }
+
+    // Only sync if there's a discrepancy or force update
+    if (subscription.credits !== stripeCredits || forceUpdate) {
+      console.log(`Syncing credits: DB=${subscription.credits}, Stripe=${stripeCredits}`)
+      
+      const updated = await updateSubscriptionCredits(clerkUserId, stripeCredits)
+      
+      if (updated) {
+        await logCreditUsage(
+          clerkUserId,
+          'credit_sync',
+          0,
+          stripeCredits,
+          `Credits synced with Stripe: ${subscription.credits} → ${stripeCredits}`
+        )
+        return true
+      }
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error syncing credits with Stripe:', error)
     return false
   }
 }
