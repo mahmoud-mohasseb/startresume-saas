@@ -45,7 +45,6 @@ StartResume.io is a comprehensive SaaS platform that combines AI-powered resume 
 - **OpenAI** - AI content generation and analysis
 
 ### Infrastructure
-- **Vercel** - Deployment and hosting
 - **Supabase** - Database and authentication
 - **Stripe** - Payment processing
 - **OpenAI** - AI services
@@ -207,10 +206,10 @@ STRIPE_PRO_PRICE_ID=
    ```
 
 ### Deployment Platforms
-- **Vercel** (Recommended) - Seamless Next.js deployment
-- **Netlify** - Alternative hosting option
+- **Netlify** - Static site hosting with serverless functions
 - **Railway** - Full-stack deployment
 - **AWS/GCP** - Custom infrastructure
+- **Self-hosted** - Docker deployment option
 
 ## 📈 Analytics & Monitoring
 

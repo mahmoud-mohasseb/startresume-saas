@@ -47,17 +47,16 @@ export default clerkMiddleware((auth, req: NextRequest) => {
       console.warn(`Large headers detected: ${headerSize} bytes`);
     }
     
-    // Clean up unnecessary headers
     const response = NextResponse.next();
     
     // Remove potentially large headers that aren't needed
     const headersToRemove = [
       'x-forwarded-for',
+      'x-forwarded-host', 
+      'x-forwarded-proto',
       'x-real-ip',
       'cf-ray',
-      'cf-connecting-ip',
-      'x-vercel-ip-country',
-      'x-vercel-ip-city'
+      'cf-connecting-ip'
     ];
     
     headersToRemove.forEach(header => {

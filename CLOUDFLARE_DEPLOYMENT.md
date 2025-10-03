@@ -30,7 +30,7 @@
    - Example: `functions/api/user/credits.js`
 
 2. **External API Service**
-   - Deploy API routes to a separate service (Vercel, Railway, etc.)
+   - Deploy API routes to a separate service (Railway, Render, etc.)
    - Update frontend to call external API endpoints
 
 3. **Cloudflare Workers**
