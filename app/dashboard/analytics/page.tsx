@@ -31,21 +31,26 @@ export default function AnalyticsPage() {
   const loadAnalytics = async () => {
     try {
       setLoading(true)
-      // Mock data for demo since API might not exist
-      setAnalytics({
-        totalResumes: 12,
-        totalCoverLetters: 8,
-        creditsUsed: 145,
-        creditsRemaining: 55,
-        atsScoreAverage: 78,
-        recentActivity: [
-          { date: '2024-01-15', action: 'Resume Generated', credits: 5 },
-          { date: '2024-01-14', action: 'Cover Letter', credits: 3 },
-          { date: '2024-01-13', action: 'Job Tailoring', credits: 3 },
-          { date: '2024-01-12', action: 'LinkedIn Optimization', credits: 4 },
-          { date: '2024-01-11', action: 'Salary Research', credits: 2 }
-        ]
-      })
+      // Fetch actual analytics data from credits API
+      const response = await fetch('/api/user/credits')
+      if (response.ok) {
+        const data = await response.json()
+        
+        setAnalytics({
+          totalResumes: data.analytics?.totalUsed || 0,
+          totalCoverLetters: data.analytics?.usageByAction?.cover_letter || 0,
+          creditsUsed: data.subscription?.usedCredits || 0,
+          creditsRemaining: data.subscription?.remainingCredits || 0,
+          atsScoreAverage: 78, // Keep this as placeholder for now
+          recentActivity: data.analytics?.recentUsage?.map((usage: any) => ({
+            date: new Date(usage.timestamp).toLocaleDateString(),
+            action: usage.action,
+            credits: usage.credits_used
+          })) || []
+        })
+      } else {
+        throw new Error('Failed to fetch analytics data')
+      }
     } catch (error) {
       console.error('Failed to load analytics:', error)
     } finally {
