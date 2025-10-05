@@ -36,8 +36,33 @@ export default function PlanBasedFeatureGuard({ feature, children }: PlanBasedFe
       }
     }
 
+    const handlePaymentSuccess = () => {
+      console.log('🎯 Payment success detected in FeatureGuard, refreshing subscription')
+      refreshSubscription()
+    }
+
+    const handleCreditsUpdate = () => {
+      console.log('🔄 Credits updated in FeatureGuard, refreshing subscription')
+      refreshSubscription()
+    }
+
+    const handleSubscriptionUpdate = () => {
+      console.log('📋 Subscription updated in FeatureGuard, refreshing subscription')
+      refreshSubscription()
+    }
+
+    // Listen for various events that might unlock features
     window.addEventListener('focus', handleFocus)
-    return () => window.removeEventListener('focus', handleFocus)
+    window.addEventListener('payment-success', handlePaymentSuccess)
+    window.addEventListener('credits-updated', handleCreditsUpdate)
+    window.addEventListener('subscription-updated', handleSubscriptionUpdate)
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+      window.removeEventListener('payment-success', handlePaymentSuccess)
+      window.removeEventListener('credits-updated', handleCreditsUpdate)
+      window.removeEventListener('subscription-updated', handleSubscriptionUpdate)
+    }
   }, [feature, hasFeatureAccess, refreshSubscription])
 
   // Loading state

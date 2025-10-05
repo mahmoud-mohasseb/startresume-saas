@@ -20,13 +20,42 @@ export default function PaymentSuccessPage() {
     
     // Also dispatch the legacy event for backward compatibility
     window.dispatchEvent(new CustomEvent('credits-updated'))
+    window.dispatchEvent(new CustomEvent('payment-success'))
+    window.dispatchEvent(new CustomEvent('subscription-updated'))
 
+    // Force immediate credit refresh
+    const forceRefresh = async () => {
+      try {
+        const response = await fetch('/api/user/credits?force=true&t=' + Date.now(), {
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        })
+        if (response.ok) {
+          console.log('✅ Credits refreshed after payment success')
+        }
+      } catch (error) {
+        console.error('Error refreshing credits:', error)
+      }
+    }
+
+    // Immediate refresh
+    forceRefresh()
+
+    // Aggressive polling for 30 seconds to ensure credits are updated
+    const pollInterval = setInterval(forceRefresh, 2000)
+    
     // Simulate processing time for better UX
     const timer = setTimeout(() => {
       setIsProcessing(false)
-    }, 2000)
+      clearInterval(pollInterval) // Stop aggressive polling
+    }, 10000) // Process for 10 seconds
 
-    return () => clearTimeout(timer)
+    return () => {
+      clearTimeout(timer)
+      clearInterval(pollInterval)
+    }
   }, [])
 
   const sessionId = searchParams.get('session_id')
