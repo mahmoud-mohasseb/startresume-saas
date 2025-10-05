@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { Check, Zap, Crown, Star } from 'lucide-react'
+import { useUser } from '@clerk/nextjs'
+import { useRouter } from 'next/navigation'
 
 const plans = [
   {
@@ -66,9 +68,20 @@ const plans = [
 ]
 
 export function PricingSection() {
+  const { user, isLoaded } = useUser()
+  const router = useRouter()
   const [loading, setLoading] = useState<string | null>(null)
 
   const handleUpgrade = async (planId: string) => {
+    // Check if user is authenticated
+    if (!isLoaded) return
+    
+    if (!user) {
+      // Redirect to sign-in page if not authenticated
+      router.push('/sign-in')
+      return
+    }
+
     setLoading(planId)
     
     try {
@@ -174,7 +187,7 @@ export function PricingSection() {
                       Processing...
                     </div>
                   ) : (
-                    'Get Started'
+                    isLoaded && !user ? 'Sign In to Get Started' : 'Get Started'
                   )}
                 </button>
               </div>
