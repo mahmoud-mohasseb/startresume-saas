@@ -48,23 +48,46 @@ export async function POST(request: NextRequest) {
 
     console.log(`Creating checkout session for user ${user.id}, plan: ${plan}`)
 
-    // Create or retrieve Stripe customer
+    // Create or retrieve Stripe customer with proper metadata
     let customer: Stripe.Customer
-    const existingCustomers = await stripe.customers.list({
-      email: user.emailAddresses[0]?.emailAddress,
-      limit: 1,
+    
+    // First, search by clerk_user_id in metadata
+    const existingCustomersByMetadata = await stripe.customers.search({
+      query: `metadata['clerk_user_id']:'${user.id}'`
     })
 
-    if (existingCustomers.data.length > 0) {
-      customer = existingCustomers.data[0]
+    if (existingCustomersByMetadata.data.length > 0) {
+      customer = existingCustomersByMetadata.data[0]
+      console.log(`Found existing customer by metadata: ${customer.id}`)
     } else {
-      customer = await stripe.customers.create({
+      // Search by email as fallback
+      const existingCustomersByEmail = await stripe.customers.list({
         email: user.emailAddresses[0]?.emailAddress,
-        name: user.fullName || undefined,
-        metadata: {
-          clerk_user_id: user.id,
-        },
+        limit: 1,
       })
+
+      if (existingCustomersByEmail.data.length > 0) {
+        customer = existingCustomersByEmail.data[0]
+        
+        // Update existing customer with clerk_user_id metadata
+        customer = await stripe.customers.update(customer.id, {
+          metadata: {
+            ...customer.metadata,
+            clerk_user_id: user.id,
+          },
+        })
+        console.log(`Updated existing customer with metadata: ${customer.id}`)
+      } else {
+        // Create new customer
+        customer = await stripe.customers.create({
+          email: user.emailAddresses[0]?.emailAddress,
+          name: user.fullName || undefined,
+          metadata: {
+            clerk_user_id: user.id,
+          },
+        })
+        console.log(`Created new customer: ${customer.id}`)
+      }
     }
 
     // Create Stripe Checkout Session

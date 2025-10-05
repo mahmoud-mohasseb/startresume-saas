@@ -33,7 +33,38 @@ export async function getStripeDirectCredits(clerkUserId: string): Promise<Strip
     console.log(`Found ${customers.data.length} customers for user ${clerkUserId}`)
     
     if (customers.data.length === 0) {
-      console.log('❌ No Stripe customer found')
+      console.log('❌ No Stripe customer found for user:', clerkUserId)
+      console.log('🔧 This usually means:')
+      console.log('   1. User has not completed a payment yet')
+      console.log('   2. Customer was created without clerk_user_id metadata')
+      console.log('   3. Webhook events are not being processed')
+      
+      // Try to find customer by email as fallback
+      try {
+        const user = await currentUser()
+        if (user?.emailAddresses[0]?.emailAddress) {
+          const customersByEmail = await stripe.customers.list({
+            email: user.emailAddresses[0].emailAddress,
+            limit: 1
+          })
+          
+          if (customersByEmail.data.length > 0) {
+            console.log('🔍 Found customer by email, updating with metadata')
+            const customer = await stripe.customers.update(customersByEmail.data[0].id, {
+              metadata: {
+                ...customersByEmail.data[0].metadata,
+                clerk_user_id: clerkUserId
+              }
+            })
+            
+            // Retry the original function with updated customer
+            return await getStripeDirectCredits(clerkUserId)
+          }
+        }
+      } catch (emailFallbackError) {
+        console.error('Email fallback failed:', emailFallbackError)
+      }
+      
       return {
         credits: 0,
         usedCredits: 0,
