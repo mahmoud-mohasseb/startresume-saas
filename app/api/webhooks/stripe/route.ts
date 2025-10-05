@@ -86,49 +86,19 @@ async function handleSubscriptionCreated(session: Stripe.Checkout.Session) {
 
     console.log(`Creating subscription for user: ${clerkUserId}, plan: ${plan}, credits: ${credits}`)
 
-    // First, ensure user exists in users table
-    const { data: existingUser, error: userCheckError } = await supabase
-      .from('users')
-      .select('id')
-      .eq('clerk_user_id', clerkUserId)
-      .single()
-
-    if (userCheckError && userCheckError.code === 'PGRST116') {
-      // User doesn't exist, create them
-      const { error: userCreateError } = await supabase
-        .from('users')
-        .insert({
-          clerk_user_id: clerkUserId,
-          email: session.customer_email || `${clerkUserId}@temp.com`
-        })
-
-      if (userCreateError) {
-        console.error('Error creating user:', userCreateError)
-        return
-      }
-    }
-
-    // Get user ID for foreign key
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('id')
-      .eq('clerk_user_id', clerkUserId)
-      .single()
-
-    if (userError || !user) {
-      console.error('Error fetching user:', userError)
-      return
-    }
-
-    // Create or update subscription
+    // Create or update subscription directly with clerk_user_id as user_id
     const { error: subscriptionError } = await supabase
       .from('subscriptions')
       .upsert({
-        user_id: user.id,
+        user_id: clerkUserId, // Use clerk_user_id directly as user_id
         plan: plan,
         credits: credits,
+        credits_used: 0, // Reset used credits
+        status: 'active',
         stripe_subscription_id: session.subscription as string,
         stripe_customer_id: session.customer as string,
+        current_period_start: new Date().toISOString(),
+        current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
         updated_at: new Date().toISOString()
       }, {
         onConflict: 'user_id'
@@ -220,14 +190,18 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
 
     console.log(`Payment succeeded, refreshing credits for user: ${clerkUserId}`)
 
-    // Refresh monthly credits
+    // Refresh monthly credits and reset usage
     const { error } = await supabase
       .from('subscriptions')
       .update({
         credits: credits,
+        credits_used: 0, // Reset used credits on payment
+        status: 'active',
+        current_period_start: new Date().toISOString(),
+        current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         updated_at: new Date().toISOString()
       })
-      .eq('stripe_subscription_id', subscription.id)
+      .eq('user_id', clerkUserId) // Use user_id instead of stripe_subscription_id
 
     if (error) {
       console.error('Error refreshing credits:', error)

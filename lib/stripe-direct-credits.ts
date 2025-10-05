@@ -137,7 +137,7 @@ export async function getStripeDirectCredits(clerkUserId: string): Promise<Strip
       }
     }
     
-    // Get or create subscription in database to track actual usage
+    // Get subscription from database to track actual usage
     let dbSubscription = await getSubscription(clerkUserId)
     
     // If no database subscription exists, create one
@@ -153,8 +153,8 @@ export async function getStripeDirectCredits(clerkUserId: string): Promise<Strip
     
     // Use database subscription data for accurate credit tracking
     const totalCredits = plan.credits
-    const remainingCredits = dbSubscription?.credits || 0
-    const usedCredits = totalCredits - remainingCredits
+    const usedCredits = dbSubscription?.credits_used || 0
+    const remainingCredits = totalCredits - usedCredits
     
     return {
       credits: totalCredits,

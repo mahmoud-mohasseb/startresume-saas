@@ -9,9 +9,10 @@ export const supabase = createClient(supabaseUrl, supabaseKey)
 export interface Subscription {
   id: string
   user_id: string
-  clerk_user_id: string
+  clerk_user_id?: string
   plan: 'basic' | 'standard' | 'pro'
   credits: number
+  credits_used: number
   stripe_subscription_id?: string
   stripe_customer_id?: string
   status: 'active' | 'canceled' | 'past_due'
@@ -78,7 +79,7 @@ export async function getUser(clerkUserId: string): Promise<User | null> {
     const { data, error } = await supabase
       .from('users')
       .select('*')
-      .eq('clerk_user_id', clerkUserId)
+      .eq('user_id', clerkUserId)
       .single()
 
     if (error) {
@@ -101,33 +102,25 @@ export async function createSubscription(
   stripeCustomerId?: string
 ): Promise<Subscription | null> {
   try {
-    // First ensure user exists
-    let user = await getUser(clerkUserId)
-    if (!user) {
-      // Create user if doesn't exist
-      user = await createUser(clerkUserId, `${clerkUserId}@temp.com`)
-      if (!user) {
-        throw new Error('Failed to create user')
-      }
-    }
-
     const planConfig = PLAN_CONFIGS[plan]
     
     const { data, error } = await supabase
       .from('subscriptions')
-      .insert([
+      .upsert([
         {
-          user_id: user.id,
-          clerk_user_id: clerkUserId,
+          user_id: clerkUserId, // Use clerkUserId directly as user_id
           plan: plan,
           credits: planConfig.credits,
+          credits_used: 0, // Initialize with 0 used credits
           stripe_subscription_id: stripeSubscriptionId,
           stripe_customer_id: stripeCustomerId,
           status: 'active',
           current_period_start: new Date().toISOString(),
           current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days
         }
-      ])
+      ], {
+        onConflict: 'user_id'
+      })
       .select()
       .single()
 
@@ -148,7 +141,7 @@ export async function getSubscription(clerkUserId: string): Promise<Subscription
     const { data, error } = await supabase
       .from('subscriptions')
       .select('*')
-      .eq('clerk_user_id', clerkUserId)
+      .eq('user_id', clerkUserId) // Use user_id instead of clerk_user_id
       .eq('status', 'active')
       .order('created_at', { ascending: false })
       .limit(1)
@@ -175,9 +168,10 @@ export async function updateSubscriptionCredits(
       .from('subscriptions')
       .update({ 
         credits: credits,
+        credits_used: 0, // Reset used credits when updating total credits
         updated_at: new Date().toISOString()
       })
-      .eq('clerk_user_id', clerkUserId)
+      .eq('user_id', clerkUserId)
       .eq('status', 'active')
       .select()
       .single()
@@ -215,37 +209,41 @@ export async function deductCredits(
       return { success: false, remainingCredits: subscription.credits }
     }
 
+    // Calculate remaining credits
+    const remainingCredits = subscription.credits - subscription.credits_used
+    
     // Check if user has enough credits
-    if (subscription.credits < creditsToDeduct) {
-      console.error('Insufficient credits for user:', clerkUserId, 'required:', creditsToDeduct, 'available:', subscription.credits)
-      return { success: false, remainingCredits: subscription.credits }
+    if (remainingCredits < creditsToDeduct) {
+      console.error('Insufficient credits for user:', clerkUserId, 'required:', creditsToDeduct, 'available:', remainingCredits)
+      return { success: false, remainingCredits: remainingCredits }
     }
 
-    // Deduct credits atomically
-    const newCredits = subscription.credits - creditsToDeduct
+    // Deduct credits by increasing credits_used
+    const newCreditsUsed = subscription.credits_used + creditsToDeduct
+    const newRemainingCredits = subscription.credits - newCreditsUsed
     
     // Use atomic update to prevent race conditions
     const { data: updatedSubscription, error } = await supabase
       .from('subscriptions')
       .update({ 
-        credits: newCredits,
+        credits_used: newCreditsUsed,
         updated_at: new Date().toISOString()
       })
-      .eq('clerk_user_id', clerkUserId)
-      .eq('credits', subscription.credits) // Ensure credits haven't changed since we read them
+      .eq('user_id', clerkUserId)
+      .eq('credits_used', subscription.credits_used) // Ensure credits_used hasn't changed since we read them
       .select()
       .single()
     
     if (error || !updatedSubscription) {
       console.error('Failed to update credits atomically:', error)
-      return { success: false, remainingCredits: subscription.credits }
+      return { success: false, remainingCredits: remainingCredits }
     }
 
     // Log credit usage
-    await logCreditUsage(clerkUserId, action, creditsToDeduct, newCredits, description)
+    await logCreditUsage(clerkUserId, action, creditsToDeduct, newRemainingCredits, description)
 
-    console.log(`✅ Credits deducted successfully: ${subscription.credits} → ${newCredits} for user ${clerkUserId}`)
-    return { success: true, remainingCredits: newCredits }
+    console.log(`✅ Credits deducted successfully: ${remainingCredits} → ${newRemainingCredits} for user ${clerkUserId}`)
+    return { success: true, remainingCredits: newRemainingCredits }
   } catch (error) {
     console.error('Error deducting credits:', error)
     return { success: false, remainingCredits: 0 }
@@ -301,7 +299,7 @@ export async function getCreditHistory(
     const { data, error } = await supabase
       .from('credit_history')
       .select('*')
-      .eq('clerk_user_id', clerkUserId)
+      .eq('user_id', clerkUserId)
       .order('created_at', { ascending: false })
       .limit(limit)
 
@@ -329,7 +327,7 @@ export async function updateSubscriptionStatus(
         status: status,
         updated_at: new Date().toISOString()
       })
-      .eq('clerk_user_id', clerkUserId)
+      .eq('user_id', clerkUserId)
       .select()
       .single()
 
@@ -354,7 +352,7 @@ export async function cancelSubscription(clerkUserId: string): Promise<boolean> 
         status: 'canceled',
         updated_at: new Date().toISOString()
       })
-      .eq('clerk_user_id', clerkUserId)
+      .eq('user_id', clerkUserId)
 
     if (error) {
       console.error('Error canceling subscription:', error)
@@ -387,7 +385,7 @@ export async function preventAutoRestart(clerkUserId: string): Promise<boolean> 
         status: 'canceled',
         updated_at: new Date().toISOString()
       })
-      .eq('clerk_user_id', clerkUserId)
+      .eq('user_id', clerkUserId)
       .eq('status', 'active')
 
     if (error) {
