@@ -78,6 +78,25 @@ export async function getStripeDirectCredits(clerkUserId: string): Promise<Strip
     
     // Plan configurations matching Stripe price IDs
     const STRIPE_PLANS: Record<string, any> = {
+      [process.env.STRIPE_BASIC_PRICE_ID!]: { // Basic
+        id: 'basic',
+        name: 'Basic',
+        credits: 10,
+        price: 9.99
+      },
+      [process.env.STRIPE_STANDARD_PRICE_ID!]: { // Standard
+        id: 'standard', 
+        name: 'Standard',
+        credits: 50,
+        price: 19.99
+      },
+      [process.env.STRIPE_PRO_PRICE_ID!]: { // Pro
+        id: 'pro',
+        name: 'Pro', 
+        credits: 200,
+        price: 49.99
+      },
+      // Fallback for hardcoded IDs (in case env vars aren't set)
       'price_1S7dpfFlaHFpdvA4YJj1omFc': { // Basic
         id: 'basic',
         name: 'Basic',
@@ -99,6 +118,9 @@ export async function getStripeDirectCredits(clerkUserId: string): Promise<Strip
     }
     
     const plan = STRIPE_PLANS[priceId as string]
+    
+    console.log('🔍 Price ID lookup:', priceId, 'Found plan:', plan)
+    console.log('🔍 Available price IDs:', Object.keys(STRIPE_PLANS))
     
     if (!plan) {
       console.log('❌ Unknown price ID:', priceId)

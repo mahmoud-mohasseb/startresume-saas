@@ -17,6 +17,10 @@ const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
 
 // Plan configurations matching Stripe price IDs
 const STRIPE_PLANS: Record<string, { credits: number; name: string }> = {
+  [process.env.STRIPE_BASIC_PRICE_ID!]: { credits: 10, name: 'Basic' },
+  [process.env.STRIPE_STANDARD_PRICE_ID!]: { credits: 50, name: 'Standard' },
+  [process.env.STRIPE_PRO_PRICE_ID!]: { credits: 200, name: 'Pro' },
+  // Fallback for hardcoded IDs (in case env vars aren't set)
   'price_1S7dpfFlaHFpdvA4YJj1omFc': { credits: 10, name: 'Basic' },
   'price_1S7drgFlaHFpdvA4EaEaCtrA': { credits: 50, name: 'Standard' },
   'price_1S7dsBFlaHFpdvA42nBRrxgZ': { credits: 200, name: 'Pro' }
@@ -24,7 +28,9 @@ const STRIPE_PLANS: Record<string, { credits: number; name: string }> = {
 
 function getPlanCredits(subscription: Stripe.Subscription): number {
   const priceId = subscription.items.data[0]?.price.id
-  return STRIPE_PLANS[priceId]?.credits || 0
+  const credits = STRIPE_PLANS[priceId]?.credits || 0
+  console.log('Getting plan credits for price ID:', priceId, 'credits:', credits)
+  return credits
 }
 
 export async function POST(request: NextRequest) {
@@ -49,19 +55,29 @@ export async function POST(request: NextRequest) {
         
         if (session.mode === 'subscription') {
           const clerkUserId = session.metadata?.clerk_user_id
-          const planId = session.metadata?.plan_id as 'basic' | 'standard' | 'pro'
+          const planId = session.metadata?.plan as 'basic' | 'standard' | 'pro' // Fixed: was plan_id, now plan
           
           if (clerkUserId && planId) {
             console.log('Creating subscription for user:', clerkUserId, 'plan:', planId)
             
-            await createSubscription(
+            const subscription = await createSubscription(
               clerkUserId,
               planId,
               session.subscription as string,
               session.customer as string
             )
             
-            console.log('Subscription created successfully')
+            if (subscription) {
+              console.log('Subscription created successfully:', subscription.id)
+              
+              // Immediately refresh credits to ensure they're available
+              await refreshMonthlyCredits(clerkUserId)
+              console.log('Credits refreshed after subscription creation')
+            } else {
+              console.error('Failed to create subscription for user:', clerkUserId)
+            }
+          } else {
+            console.error('Missing required metadata:', { clerkUserId, planId, metadata: session.metadata })
           }
         }
         break
