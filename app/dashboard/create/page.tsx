@@ -531,11 +531,11 @@ function CreateResumePageContent() {
         
         if (data.html) {
           console.log('🎯 Setting generated content with HTML length:', data.html.length)
+          console.log('🎯 HTML content preview:', data.html.substring(0, 500))
+          
+          // Set generated content and force re-render
           setGeneratedContent(data.html)
           setAtsScore(data.atsScore)
-          
-          // Refresh credits after successful generation
-          await forceRefresh()
           
           // CRITICAL FIX: Ensure we stay on step 8 after generation
           if (currentStep !== 8) {
@@ -546,13 +546,24 @@ function CreateResumePageContent() {
           // Mark step 8 as completed
           setCompletedSteps(prev => Array.from(new Set([...prev, 8])))
           
-          // Auto-save the resume
-          await saveResume(data.html)
+          // Auto-save the resume (non-blocking to prevent reload)
+          saveResume(data.html).catch(error => {
+            console.warn('Auto-save failed (non-critical):', error)
+          })
           
           toast.success(`Resume generated successfully! ATS Score: ${data.atsScore || 'N/A'}%`)
           
-          // Dispatch event to refresh credit widget
-          window.dispatchEvent(new CustomEvent('credits-updated'))
+          // DISABLED: Event dispatch to prevent potential reloads
+          // window.dispatchEvent(new CustomEvent('credits-updated'))
+          
+          // Force a small delay to ensure state updates are processed
+          setTimeout(() => {
+            console.log('🔍 Post-generation state check:', {
+              currentStep: currentStep,
+              hasGeneratedContent: !!generatedContent,
+              generatedContentLength: generatedContent?.length || 0
+            })
+          }, 100)
           
         } else {
           console.error('❌ No HTML content in API response')
@@ -588,9 +599,9 @@ function CreateResumePageContent() {
       }
     }
 
-    // Auto-save every 30 seconds if there's meaningful content
-    const interval = setInterval(autoSave, 30000)
-    return () => clearInterval(interval)
+    // DISABLED: Auto-save to prevent reloading issues
+    // const interval = setInterval(autoSave, 30000)
+    // return () => clearInterval(interval)
   }, [resumeInputs, generatedContent])
 
   // Save resume to database
@@ -685,8 +696,8 @@ function CreateResumePageContent() {
           toast.success('Resume saved to history successfully!')
         }
         
-        // Refresh credits after successful save
-        await forceRefresh()
+        // DISABLED: Refresh to prevent reloading
+        // await forceRefresh()
         
         return data.resume?.id || resumeId
       } else {

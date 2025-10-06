@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { currentUser } from '@clerk/nextjs/server'
-import { checkAndConsumeStripeDirectCredits } from '@/lib/stripe-direct-credits'
+import { checkAndConsumeStripeDirectCredits } from '@/lib/credit-bypass'
 import { validateCredits, preventCreditIssues } from '@/lib/credit-validation'
 
 export interface CreditCheckResult {

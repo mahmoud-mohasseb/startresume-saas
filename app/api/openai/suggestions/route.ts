@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
     console.log('✅ Generated suggestions (FREE):', suggestions.length)
 
     return NextResponse.json({
+      success: true,
       suggestions,
       message: 'AI suggestions generated successfully (free feature)'
     })
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('❌ Error generating suggestions:', error)
     return NextResponse.json(
-      { error: 'Failed to generate suggestions' },
+      { success: false, error: 'Failed to generate suggestions' },
       { status: 500 }
     )
   }

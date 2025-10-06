@@ -54,18 +54,23 @@ export function ReviewStep({
 
   // Initialize edited content when generated content changes
   useEffect(() => {
-    console.log('ReviewStep useEffect triggered - generatedContent changed:', {
+    console.log('🔍 ReviewStep useEffect triggered - generatedContent changed:', {
       hasContent: !!generatedContent,
       length: generatedContent?.length || 0,
       preview: generatedContent?.substring(0, 100) || 'No content',
-      currentStep: 'Review & Generate (Step 8)'
+      currentStep: 'Review & Generate (Step 8)',
+      generatedContentType: typeof generatedContent,
+      isString: typeof generatedContent === 'string',
+      isNotEmpty: generatedContent && generatedContent.length > 0
     })
     
-    if (generatedContent) {
+    if (generatedContent && generatedContent.length > 0) {
       setEditedContent(generatedContent)
       console.log('✅ ReviewStep: Edited content updated with generated content')
+      console.log('✅ ReviewStep: Content preview:', generatedContent.substring(0, 200))
     } else {
-      console.log('⚠️ ReviewStep: No generated content available')
+      console.log('⚠️ ReviewStep: No generated content available or content is empty')
+      console.log('⚠️ ReviewStep: generatedContent value:', generatedContent)
     }
   }, [generatedContent])
 
@@ -116,18 +121,22 @@ export function ReviewStep({
   }
 
   const handleCancelEdit = () => {
-    setEditedContent(generatedContent)
     setIsEditing(false)
   }
 
+  // Debug render state
+  console.log('🎯 ReviewStep render called with:', {
+    isEditing,
+    isGenerating,
+    hasGeneratedContent: !!generatedContent,
+    generatedContentLength: generatedContent?.length || 0,
+    generatedContentPreview: generatedContent?.substring(0, 100) || 'No content',
+    onGenerateType: typeof onGenerate,
+    renderCondition: !generatedContent || generatedContent.length === 0 ? 'SHOW_GENERATION' : 'SHOW_CONTENT'
+  })
+
   const handleRegenerateResume = async () => {
     console.log('Regenerate button clicked!')
-    console.log('Current state:', {
-      isEditing,
-      isGenerating,
-      hasGeneratedContent: !!generatedContent,
-      onGenerateType: typeof onGenerate
-    })
     
     setIsEditing(false)
     
@@ -154,7 +163,7 @@ export function ReviewStep({
       icon={Eye}
     >
       <div className="space-y-8">
-        {!generatedContent ? (
+        {!generatedContent || generatedContent.length === 0 ? (
           // Generation Step
           <div className="text-center py-20">
             <div className="max-w-md mx-auto">

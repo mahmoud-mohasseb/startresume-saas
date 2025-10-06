@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { currentUser } from '@clerk/nextjs/server'
 import OpenAI from 'openai'
 import { OPENAI_CONFIG, SYSTEM_PROMPTS } from '@/lib/openai-config'
-import { checkAndRecordUsage } from '@/lib/plan-based-access'
+import { checkAndRecordUsage } from '@/lib/credit-bypass'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -95,8 +95,8 @@ export async function POST(request: NextRequest) {
       }, { status: 429 })
     }
 
-    // Check plan access and record usage
-    console.log('💼 Job tailoring: Checking plan access for user:', user.id)
+    // Check plan access and record usage with bypass system
+    console.log('💼 Job tailoring: Checking plan access with bypass system')
     const accessResult = await checkAndRecordUsage(user.id, 'job_tailoring')
     
     if (!accessResult.success) {
@@ -104,13 +104,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         error: 'Plan access denied',
         message: accessResult.message,
-        planStatus: {
-          plan: accessResult.planStatus.planName,
-          usage: accessResult.planStatus.monthlyUsage,
-          limit: accessResult.planStatus.monthlyLimit,
-          remaining: accessResult.planStatus.remainingUsage,
-          isUnlimited: accessResult.planStatus.isUnlimited
-        }
+        planStatus: accessResult.planStatus
       }, { status: 402 })
     }
 

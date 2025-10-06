@@ -35,7 +35,8 @@ export default function PaymentSuccessPage() {
         console.log(`🔄 Post-payment refresh attempt ${attempts}/${maxAttempts}`)
         
         try {
-          await refreshSubscription()
+          // DISABLED: Refresh to prevent reloading
+          // await refreshSubscription()
           
           // Wait between attempts with exponential backoff
           await new Promise(resolve => setTimeout(resolve, 1000 * attempts))

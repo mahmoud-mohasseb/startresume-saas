@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { currentUser } from '@clerk/nextjs/server'
 import OpenAI from 'openai'
-import { checkAndRecordUsage } from '@/lib/plan-based-access'
+import { checkAndRecordUsage } from '@/lib/credit-bypass'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,

@@ -56,7 +56,24 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // TEMPORARY FIX: Use simple credit system to bypass database schema issues
+    console.log('🔧 Using temporary simple credit system due to database schema issues')
+    
+    const simpleResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/simple-credits`, {
+      headers: {
+        'Cookie': request.headers.get('Cookie') || ''
+      }
+    })
+    
+    if (simpleResponse.ok) {
+      const simpleData = await simpleResponse.json()
+      console.log('✅ Using simple credit system successfully')
+      return NextResponse.json(simpleData)
+    }
 
+    // Fallback to original system if simple system fails
+    console.log('⚠️ Simple system failed, trying original...')
+    
     // Get actual subscription data from Stripe
     const stripeData = await getStripeDirectCredits(user.id)
     

@@ -40,21 +40,16 @@ export default function PaymentSuccessPage() {
       }
     }
 
-    // Immediate refresh
+    // Single refresh only - no aggressive polling
     forceRefresh()
-
-    // Aggressive polling for 30 seconds to ensure credits are updated
-    const pollInterval = setInterval(forceRefresh, 2000)
     
     // Simulate processing time for better UX
     const timer = setTimeout(() => {
       setIsProcessing(false)
-      clearInterval(pollInterval) // Stop aggressive polling
-    }, 10000) // Process for 10 seconds
+    }, 3000) // Process for 3 seconds only
 
     return () => {
       clearTimeout(timer)
-      clearInterval(pollInterval)
     }
   }, [])
 

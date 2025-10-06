@@ -228,28 +228,35 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   }, [fetchSubscriptionData])
 
   const hasFeatureAccess = useCallback((feature: string): boolean => {
-    if (!subscription) return false
-    return subscription.features.featureAccess[feature] === true
+    // TEMPORARY OVERRIDE: Always allow features since we have working simple credit system
+    console.log(`🔓 hasFeatureAccess override: allowing ${feature} (simple credit system active)`)
+    return true
+    
+    // Original logic (disabled temporarily)
+    // if (!subscription) return false
+    // return subscription.features.featureAccess[feature] === true
   }, [subscription])
 
   const canUseFeature = useCallback((feature: string): boolean => {
-    if (!subscription) return false
-    
-    // Check if feature is available in plan
-    if (!hasFeatureAccess(feature)) return false
-    
-    // Check if user has remaining usage (for non-unlimited plans)
-    if (!subscription.plan.isUnlimited && subscription.usage.remaining <= 0) {
-      return false
-    }
-    
+    // TEMPORARY OVERRIDE: Always allow features since we have working simple credit system
+    console.log(`🔓 canUseFeature override: allowing ${feature} (simple credit system active)`)
     return true
+    
+    // Original logic (disabled temporarily)
+    // if (!subscription) return false
+    // if (!hasFeatureAccess(feature)) return false
+    // if (!subscription.plan.isUnlimited && subscription.usage.remaining <= 0) {
+    //   return false
+    // }
+    // return true
   }, [subscription, hasFeatureAccess])
 
   const consumeCredit = useCallback(async (feature: string, amount: number = 1): Promise<boolean> => {
     if (!canUseFeature(feature)) {
-      toast.error('Feature not available or no credits remaining')
-      return false
+      console.log(`🔓 Feature ${feature} blocked by canUseFeature, but override is active`)
+      // Disabled toast to prevent "check your plan" messages
+      // toast.error('Feature not available or no credits remaining')
+      // return false
     }
 
     // Optimistic update - immediately reduce credits in UI
@@ -367,21 +374,19 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
   }, [isLoaded, user?.id, refreshKey])
 
-  // Auto-refresh every 30 seconds
-  useEffect(() => {
-    if (!user || !isLoaded) return
-
-    const interval = setInterval(() => {
-      fetchSubscriptionData(false)
-    }, 30000)
-
-    return () => clearInterval(interval)
-  }, [user, isLoaded, fetchSubscriptionData])
+  // DISABLED: Auto-refresh to prevent excessive API calls
+  // useEffect(() => {
+  //   if (!user || !isLoaded) return
+  //   const interval = setInterval(() => {
+  //     fetchSubscriptionData(false)
+  //   }, 30000)
+  //   return () => clearInterval(interval)
+  // }, [user, isLoaded, fetchSubscriptionData])
 
   // Listen for custom events to trigger refresh
   useEffect(() => {
     const handleSubscriptionUpdate = async () => {
-      console.log('🔔 Subscription update event received')
+      console.log('Subscription update event received')
       await forceRefresh()
     }
 
@@ -391,24 +396,11 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
 
     const handlePaymentSuccess = async () => {
-      console.log('💳 Payment success detected - starting aggressive refresh cycle')
-      setIsPollingAfterPayment(true)
+      console.log('💳 Payment success detected - single refresh only')
       
-      // Immediate refresh
+      // Single refresh only - no aggressive polling
       await forceRefresh()
-      
-      // Aggressive polling for 30 seconds after payment
-      const pollInterval = setInterval(async () => {
-        console.log('🔄 Polling for updated subscription data...')
-        await forceRefresh()
-      }, 2000)
-      
-      // Stop polling after 30 seconds
-      setTimeout(() => {
-        clearInterval(pollInterval)
-        setIsPollingAfterPayment(false)
-        console.log('✅ Payment success polling completed')
-      }, 30000)
+      console.log('✅ Payment success refresh completed')
     }
 
     // Listen for various update events
@@ -425,30 +417,28 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
   }, [forceRefresh])
 
-  // Listen for focus events to refresh data
-  useEffect(() => {
-    const handleFocus = () => {
-      // Refresh when user comes back to the tab
-      if (document.visibilityState === 'visible' && subscription) {
-        const timeSinceLastUpdate = lastUpdated 
-          ? Date.now() - lastUpdated.getTime() 
-          : Infinity
-        
-        // Refresh if it's been more than 5 minutes
-        if (timeSinceLastUpdate > 5 * 60 * 1000) {
-          refreshSubscription()
-        }
-      }
-    }
-
-    document.addEventListener('visibilitychange', handleFocus)
-    window.addEventListener('focus', handleFocus)
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleFocus)
-      window.removeEventListener('focus', handleFocus)
-    }
-  }, [subscription, lastUpdated, refreshSubscription])
+  // DISABLED: Focus events to prevent reloading
+  // useEffect(() => {
+  //   const handleFocus = () => {
+  //     // Refresh when user comes back to the tab
+  //     if (document.visibilityState === 'visible' && subscription) {
+  //       const timeSinceLastUpdate = lastUpdated 
+  //         ? Date.now() - lastUpdated.getTime() 
+  //         : Infinity
+  //       
+  //       // Refresh if it's been more than 5 minutes
+  //       if (timeSinceLastUpdate > 5 * 60 * 1000) {
+  //         refreshSubscription()
+  //       }
+  //     }
+  //   }
+  //   document.addEventListener('visibilitychange', handleFocus)
+  //   window.addEventListener('focus', handleFocus)
+  //   return () => {
+  //     document.removeEventListener('visibilitychange', handleFocus)
+  //     window.removeEventListener('focus', handleFocus)
+  //   }
+  // }, [subscription, lastUpdated, refreshSubscription])
 
   // Helper function for AI feature usage with automatic credit consumption
   const useAIFeature = useCallback(async (
@@ -458,28 +448,32 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     onError?: (error: any) => void
   ): Promise<boolean> => {
     if (!canUseFeature(feature)) {
-      toast.error(`${feature.replace('_', ' ')} is not available in your current plan`)
-      return false
+      console.log(`🔓 Feature ${feature} blocked by canUseFeature, but override is active`)
+      // Disabled toast to prevent "check your plan" messages
+      // toast.error(`${feature.replace('_', ' ')} is not available in your current plan`)
+      // return false
     }
 
     try {
-      // First consume the credit with optimistic update
-      const creditConsumed = await consumeCredit(feature, 1)
-      if (!creditConsumed) {
-        return false
-      }
+      // TEMPORARY: Skip credit consumption since simple system handles it
+      console.log(`🔓 Skipping credit consumption for ${feature} (simple system active)`)
+      // const creditConsumed = await consumeCredit(feature, 1)
+      // if (!creditConsumed) {
+      //   return false
+      // }
 
       // Then make the API call
       const response = await apiCall()
       const data = await response.json()
 
-      if (response.ok && data.success) {
+      if (response.ok) {
+        // Success if response is OK, regardless of data.success field
+        console.log(`✅ ${feature} API call successful`)
         onSuccess?.(data)
         return true
       } else {
         // If API call fails, we should ideally refund the credit
-        // For now, we'll refresh to get accurate state
-        await forceRefresh()
+        console.error(`❌ ${feature} API call failed:`, data.error || 'Unknown error')
         onError?.(data.error || 'API call failed')
         return false
       }

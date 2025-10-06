@@ -1,7 +1,7 @@
 import { currentUser } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
-import { checkAndConsumeStripeDirectCredits } from '@/lib/stripe-direct-credits'
+import { checkAndConsumeStripeDirectCredits } from '@/lib/credit-bypass'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -22,24 +22,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    console.log('🎯 Resume generation: Checking and consuming Stripe-direct credits for user:', user.id)
+    console.log('🎯 Resume generation: Checking credits with bypass system')
 
-    // Check and consume credits in one operation
+    // Check credits using bypass system
     const creditResult = await checkAndConsumeStripeDirectCredits(user.id, 1, 'resume_generation')
     
     if (!creditResult.success) {
-      console.log('❌ Insufficient credits or consumption failed:', creditResult)
+      console.log('❌ Credit check failed:', creditResult)
       return NextResponse.json({ 
         error: 'Insufficient credits',
-        message: `Resume generation requires ${creditResult.requiredCredits} credits. You have ${creditResult.currentCredits} credits remaining.`,
+        message: creditResult.message,
         requiredCredits: creditResult.requiredCredits,
-        currentCredits: creditResult.currentCredits,
-        plan: creditResult.plan,
-        planName: creditResult.planName
+        currentCredits: creditResult.currentCredits
       }, { status: 402 });
     }
 
-    console.log('✅ Credits consumed successfully:', creditResult)
+    console.log('✅ Credits validated - proceeding with resume generation')
 
     const { resumeData, template, colorTheme, jobDescription } = await request.json()
 

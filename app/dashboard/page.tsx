@@ -66,15 +66,15 @@ export default function DashboardPage() {
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
     
-    // Also refresh every 30 seconds to keep data updated
-    const interval = setInterval(() => {
-      if (user) {
-      }
-    }, 30000)
+    // DISABLED: Auto-refresh to prevent reloading
+    // const interval = setInterval(() => {
+    //   if (user) {
+    //   }
+    // }, 30000)
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
-      clearInterval(interval)
+      // clearInterval(interval)
     }
   }, [user])
 

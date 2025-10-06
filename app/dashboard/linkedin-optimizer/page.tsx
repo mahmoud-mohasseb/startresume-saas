@@ -33,12 +33,40 @@ function LinkedInOptimizerPageContent() {
   const [isPreviewMode, setIsPreviewMode] = useState(false)
 
   const calculateScore = (profileData: LinkedInProfile) => {
-    const headlineScore = profileData.headline ? Math.min(100, profileData.headline.length * 2) : 0
-    const summaryScore = profileData.summary ? Math.min(100, profileData.summary.length / 5) : 0
-    const skillsScore = Math.min(100, profileData.skills.length * 8)
-    const completenessScore = [profileData.headline, profileData.summary, profileData.currentRole, profileData.industry, profileData.location].filter(Boolean).length * 20
-    const overall = Math.round((headlineScore + summaryScore + skillsScore + completenessScore) / 4)
-    setProfileScore({ overall, headline: headlineScore, summary: summaryScore, skills: skillsScore, completeness: completenessScore })
+    // More accurate headline scoring (optimal length: 50-60 chars)
+    const headlineScore = profileData.headline 
+      ? profileData.headline.length >= 40 && profileData.headline.length <= 120 
+        ? Math.min(100, 60 + (profileData.headline.length - 40) * 2)
+        : Math.min(100, profileData.headline.length * 1.5)
+      : 0
+
+    // More accurate summary scoring (optimal length: 300-500 chars)
+    const summaryScore = profileData.summary 
+      ? profileData.summary.length >= 200 && profileData.summary.length <= 600
+        ? Math.min(100, 70 + (profileData.summary.length - 200) * 0.075)
+        : Math.min(100, profileData.summary.length * 0.2)
+      : 0
+
+    // Skills scoring (optimal: 5-15 skills)
+    const skillsScore = profileData.skills.length >= 5 && profileData.skills.length <= 15
+      ? Math.min(100, 60 + (profileData.skills.length - 5) * 4)
+      : Math.min(100, profileData.skills.length * 6)
+
+    // Completeness scoring (all required fields)
+    const requiredFields = [profileData.headline, profileData.summary, profileData.currentRole, profileData.industry, profileData.location]
+    const filledFields = requiredFields.filter(field => field && field.trim().length > 0).length
+    const completenessScore = Math.round((filledFields / requiredFields.length) * 100)
+
+    // Weighted overall score (headline and summary are more important)
+    const overall = Math.round((headlineScore * 0.3 + summaryScore * 0.3 + skillsScore * 0.25 + completenessScore * 0.15))
+    
+    setProfileScore({ 
+      overall: Math.min(100, overall), 
+      headline: Math.min(100, Math.round(headlineScore)), 
+      summary: Math.min(100, Math.round(summaryScore)), 
+      skills: Math.min(100, Math.round(skillsScore)), 
+      completeness: completenessScore 
+    })
   }
 
   const getRoleSpecificSkills = (role: string) => {

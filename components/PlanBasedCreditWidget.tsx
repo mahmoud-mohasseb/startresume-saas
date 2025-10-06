@@ -12,16 +12,15 @@ export default function PlanBasedCreditWidget() {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
 
-  // Auto-refresh credits periodically
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (user) {
-        refreshSubscription()
-      }
-    }, 30000) // Refresh every 30 seconds
-
-    return () => clearInterval(interval)
-  }, [user, refreshSubscription])
+  // DISABLED: Auto-refresh to prevent reloading
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     if (user) {
+  //       refreshSubscription()
+  //     }
+  //   }, 30000) // Refresh every 30 seconds
+  //   return () => clearInterval(interval)
+  // }, [user, refreshSubscription])
 
   const handleRefresh = async () => {
     setIsRefreshing(true)

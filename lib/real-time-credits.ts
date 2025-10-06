@@ -68,7 +68,7 @@ export class RealTimeCreditUpdater {
       } catch (error) {
         console.error('Error polling for credit updates:', error)
       }
-    }, 2000) // Poll every 2 seconds
+    }, 60000) // Poll every 60 seconds (much less aggressive)
   }
 
   // Stop polling

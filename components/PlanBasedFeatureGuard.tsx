@@ -28,27 +28,23 @@ export default function PlanBasedFeatureGuard({ feature, children }: PlanBasedFe
   const { user, isLoaded } = useUser()
   const { subscription, isLoading, hasFeatureAccess, canUseFeature, refreshSubscription } = useSubscription()
 
-  // Auto-refresh when user comes back to check for plan updates
+  // DISABLED: Auto-refresh to prevent excessive API calls and reloading
   useEffect(() => {
     const handleFocus = () => {
-      if (!hasFeatureAccess(feature)) {
-        refreshSubscription()
-      }
+      // Disabled to prevent reloading
+      console.log('🔓 Focus event - not refreshing (override active)')
     }
 
     const handlePaymentSuccess = () => {
-      console.log('🎯 Payment success detected in FeatureGuard, refreshing subscription')
-      refreshSubscription()
+      console.log('🎯 Payment success detected in FeatureGuard - not refreshing (override active)')
     }
 
     const handleCreditsUpdate = () => {
-      console.log('🔄 Credits updated in FeatureGuard, refreshing subscription')
-      refreshSubscription()
+      console.log('🔄 Credits updated in FeatureGuard - not refreshing (override active)')
     }
 
     const handleSubscriptionUpdate = () => {
-      console.log('📋 Subscription updated in FeatureGuard, refreshing subscription')
-      refreshSubscription()
+      console.log('📋 Subscription updated in FeatureGuard - not refreshing (override active)')
     }
 
     // Listen for various events that might unlock features

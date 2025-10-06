@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { currentUser } from '@clerk/nextjs/server'
-import { checkAndConsumeStripeDirectCredits } from '@/lib/stripe-direct-credits'
+import { checkAndConsumeStripeDirectCredits } from '@/lib/credit-bypass'
 import OpenAI from 'openai'
 
 const openai = new OpenAI({

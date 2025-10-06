@@ -11,16 +11,15 @@ export default function StripeDirectCreditWidget() {
   const { subscription, isLoading, refreshSubscription } = useSubscription()
   const [isExpanded, setIsExpanded] = useState(false)
 
-  // Auto-refresh credits periodically
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (user) {
-        refreshSubscription()
-      }
-    }, 30000) // Refresh every 30 seconds
-
-    return () => clearInterval(interval)
-  }, [user, refreshSubscription])
+  // DISABLED: Auto-refresh to prevent reloading
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     if (user) {
+  //       refreshSubscription()
+  //     }
+  //   }, 30000) // Refresh every 30 seconds
+  //   return () => clearInterval(interval)
+  // }, [user, refreshSubscription])
 
   if (isLoading) {
     return (
