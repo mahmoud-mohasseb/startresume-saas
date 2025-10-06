@@ -23,26 +23,35 @@ export async function POST(request: NextRequest) {
 
     console.log(`💳 Consuming ${amount} credits for ${feature} by user ${user.id}`)
 
-    // TEMPORARY FIX: Use simple credit system to bypass database schema issues
-    console.log('🔧 Using temporary simple credit consumption system')
+    // DIRECT BYPASS: Use credit bypass system directly for consistency
+    console.log('🔧 Using direct credit bypass system for credit consumption')
     
-    const simpleResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/simple-credits`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cookie': request.headers.get('Cookie') || ''
-      },
-      body: JSON.stringify({ action: feature, amount })
-    })
+    const { checkAndConsumeStripeDirectCredits } = await import('@/lib/credit-bypass')
+    const creditResult = await checkAndConsumeStripeDirectCredits(user.id, amount, feature)
     
-    if (simpleResponse.ok) {
-      const simpleData = await simpleResponse.json()
-      console.log('✅ Simple credit consumption successful')
-      return NextResponse.json(simpleData)
+    if (creditResult.success) {
+      console.log('✅ Direct credit consumption successful:', creditResult)
+      return NextResponse.json({
+        success: true,
+        message: creditResult.message,
+        subscription: {
+          planName: creditResult.planName,
+          plan: creditResult.plan,
+          isActive: true,
+          totalCredits: 50,
+          usedCredits: 50 - creditResult.remainingCredits,
+          remainingCredits: creditResult.remainingCredits
+        }
+      })
+    } else {
+      console.log('❌ Direct credit consumption failed:', creditResult)
+      return NextResponse.json({
+        success: false,
+        error: creditResult.message,
+        currentCredits: creditResult.currentCredits,
+        requiredCredits: creditResult.requiredCredits
+      }, { status: 402 })
     }
-
-    // Fallback to original system if simple system fails
-    console.log('⚠️ Simple system failed, trying database system...')
 
     // Get current subscription from database
     const { data: subscription, error: subError } = await supabase

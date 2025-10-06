@@ -6,7 +6,9 @@ function getUserCreditsFromStorage(userId: string): number {
   
   try {
     const stored = localStorage.getItem(`credits_${userId}`)
-    return stored ? parseInt(stored, 10) : 50
+    const credits = stored ? parseInt(stored, 10) : 50
+    console.log(`🔍 Reading credits from localStorage for ${userId}: ${credits}`)
+    return credits
   } catch (error) {
     console.warn('Failed to read credits from localStorage:', error)
     return 50
